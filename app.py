@@ -739,6 +739,10 @@ with st.sidebar:
     
     st.divider()
     st.caption("Knowledge Base")
+    doc_list = []
+    doc_chunks = {}
+    total_chunks = 0
+    
     if init_error:
         db_initialized = False
         st.markdown("""
@@ -747,7 +751,7 @@ with st.sidebar:
         background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);
         border-radius:10px;padding:10px 12px;
         font-size:0.8rem;color:#f87171;
-    ">&#9888;&#65039; Database not found. Run ingestion.</div>
+    ">&#9888;&#65039; Database not found. Please upload documents below to initialize it.</div>
 </div>""", unsafe_allow_html=True)
     else:
         db_initialized = True
@@ -780,109 +784,110 @@ with st.sidebar:
             st.markdown('<div style="padding:0 16px;font-size:0.8rem;color:#a3a3a3;">No documents.</div>', unsafe_allow_html=True)
 
         st.markdown("<div style='padding:5px 16px 0 16px;'></div>", unsafe_allow_html=True)
-        with st.expander("⚙️ Manage Documents", expanded=False):
-            # Upload Section
-            st.markdown("<span style='font-size:0.8rem;font-weight:600;color:#a3a3a3;'>UPLOAD PDFs</span>", unsafe_allow_html=True)
-            uploaded_files = st.file_uploader(
-                "Upload Oil & Gas PDFs",
-                type=["pdf"],
-                accept_multiple_files=True,
-                label_visibility="collapsed",
-                key="doc_uploader"
+
+    with st.expander("⚙️ Manage Documents", expanded=not db_initialized):
+        # Upload Section
+        st.markdown("<span style='font-size:0.8rem;font-weight:600;color:#a3a3a3;'>UPLOAD PDFs</span>", unsafe_allow_html=True)
+        uploaded_files = st.file_uploader(
+            "Upload Oil & Gas PDFs",
+            type=["pdf"],
+            accept_multiple_files=True,
+            label_visibility="collapsed",
+            key="doc_uploader"
+        )
+        if uploaded_files:
+            if st.button("🚀 Ingest Documents", use_container_width=True):
+                status_placeholder = st.empty()
+                status_placeholder.info("Saving files to data/...")
+                try:
+                    os.makedirs("./data", exist_ok=True)
+                    for f in uploaded_files:
+                        file_path = os.path.join("./data", f.name)
+                        with open(file_path, "wb") as out_f:
+                            out_f.write(f.getbuffer())
+                    
+                    status_placeholder.info("Parsing PDFs and generating vector embeddings...")
+                    from ingest import run_ingestion
+                    success, msg = run_ingestion(force=True)
+                    if success:
+                        status_placeholder.success("🎉 Ingestion complete!")
+                        st.toast("Database updated successfully!", icon="✅")
+                        st.cache_resource.clear()
+                        st.cache_data.clear()
+                        time.sleep(1.5)
+                        st.rerun()
+                    else:
+                        status_placeholder.error(f"Ingestion failed: {msg}")
+                except Exception as ex:
+                    status_placeholder.error(f"Error: {ex}")
+
+        st.divider()
+
+        # Delete Section
+        st.markdown("<span style='font-size:0.8rem;font-weight:600;color:#a3a3a3;'>DELETE PDF</span>", unsafe_allow_html=True)
+        if doc_list:
+            doc_to_delete = st.selectbox(
+                "Select PDF to delete",
+                options=["Select document..."] + doc_list,
+                key="del_doc_select",
+                label_visibility="collapsed"
             )
-            if uploaded_files:
-                if st.button("🚀 Ingest Documents", use_container_width=True):
+            if doc_to_delete != "Select document...":
+                name_to_show = STANDARD_NAMES.get(doc_to_delete, doc_to_delete)
+                st.warning(f"Delete '{name_to_show}'?")
+                if st.button("🔴 Confirm Delete", use_container_width=True):
                     status_placeholder = st.empty()
-                    status_placeholder.info("Saving files to data/...")
+                    status_placeholder.info("Deleting file...")
                     try:
-                        os.makedirs("./data", exist_ok=True)
-                        for f in uploaded_files:
-                            file_path = os.path.join("./data", f.name)
-                            with open(file_path, "wb") as out_f:
-                                out_f.write(f.getbuffer())
+                        file_path = os.path.join("./data", doc_to_delete)
+                        if os.path.exists(file_path):
+                            os.remove(file_path)
                         
-                        status_placeholder.info("Parsing PDFs and generating vector embeddings...")
-                        from ingest import run_ingestion
-                        success, msg = run_ingestion(force=True)
-                        if success:
-                            status_placeholder.success("🎉 Ingestion complete!")
-                            st.toast("Database updated successfully!", icon="✅")
-                            st.cache_resource.clear()
-                            st.cache_data.clear()
-                            time.sleep(1.5)
-                            st.rerun()
-                        else:
-                            status_placeholder.error(f"Ingestion failed: {msg}")
-                    except Exception as ex:
-                        status_placeholder.error(f"Error: {ex}")
-
-            st.divider()
-
-            # Delete Section
-            st.markdown("<span style='font-size:0.8rem;font-weight:600;color:#a3a3a3;'>DELETE PDF</span>", unsafe_allow_html=True)
-            if doc_list:
-                doc_to_delete = st.selectbox(
-                    "Select PDF to delete",
-                    options=["Select document..."] + doc_list,
-                    key="del_doc_select",
-                    label_visibility="collapsed"
-                )
-                if doc_to_delete != "Select document...":
-                    name_to_show = STANDARD_NAMES.get(doc_to_delete, doc_to_delete)
-                    st.warning(f"Delete '{name_to_show}'?")
-                    if st.button("🔴 Confirm Delete", use_container_width=True):
-                        status_placeholder = st.empty()
-                        status_placeholder.info("Deleting file...")
-                        try:
-                            file_path = os.path.join("./data", doc_to_delete)
-                            if os.path.exists(file_path):
-                                os.remove(file_path)
-                            
-                            # Check remaining PDF documents
-                            remaining_pdfs = glob.glob(os.path.join("./data", "*.pdf"))
-                            if remaining_pdfs:
-                                status_placeholder.info("Re-indexing remaining documents...")
-                                from ingest import run_ingestion
-                                success, msg = run_ingestion(force=True)
-                                if success:
-                                    status_placeholder.success("🎉 Deletion and re-indexing complete!")
-                                    st.toast("Document deleted successfully!", icon="✅")
-                                    st.cache_resource.clear()
-                                    st.cache_data.clear()
-                                    time.sleep(1.5)
-                                    st.rerun()
-                                else:
-                                    status_placeholder.error(f"Re-indexing failed: {msg}")
-                            else:
-                                # No PDFs left! Wipe database completely
-                                status_placeholder.info("Wiping database (no documents left)...")
-                                
-                                # Wipe Chroma collection
-                                try:
-                                    import chromadb
-                                    client = chromadb.PersistentClient(path=CHROMA_DIR)
-                                    if COLLECTION_NAME in [c.name for c in client.list_collections()]:
-                                        client.delete_collection(COLLECTION_NAME)
-                                except Exception as e_chroma:
-                                    logging.error(f"Error deleting collection: {e_chroma}")
-
-                                # Wipe BM25 index
-                                if os.path.exists(BM25_PATH):
-                                    try:
-                                        os.remove(BM25_PATH)
-                                    except Exception as e_bm25:
-                                        logging.error(f"Error deleting BM25 index: {e_bm25}")
-                                
-                                status_placeholder.success("🎉 Database wiped completely!")
-                                st.toast("All documents deleted, database wiped!", icon="✅")
+                        # Check remaining PDF documents
+                        remaining_pdfs = glob.glob(os.path.join("./data", "*.pdf"))
+                        if remaining_pdfs:
+                            status_placeholder.info("Re-indexing remaining documents...")
+                            from ingest import run_ingestion
+                            success, msg = run_ingestion(force=True)
+                            if success:
+                                status_placeholder.success("🎉 Deletion and re-indexing complete!")
+                                st.toast("Document deleted successfully!", icon="✅")
                                 st.cache_resource.clear()
                                 st.cache_data.clear()
                                 time.sleep(1.5)
                                 st.rerun()
-                        except Exception as ex:
-                            status_placeholder.error(f"Error: {ex}")
-            else:
-                st.markdown("<span style='font-size:0.75rem;color:#a3a3a3;'>No documents in database.</span>", unsafe_allow_html=True)
+                            else:
+                                status_placeholder.error(f"Re-indexing failed: {msg}")
+                        else:
+                            # No PDFs left! Wipe database completely
+                            status_placeholder.info("Wiping database (no documents left)...")
+                            
+                            # Wipe Chroma collection
+                            try:
+                                import chromadb
+                                client = chromadb.PersistentClient(path=CHROMA_DIR)
+                                if COLLECTION_NAME in [c.name for c in client.list_collections()]:
+                                    client.delete_collection(COLLECTION_NAME)
+                            except Exception as e_chroma:
+                                logging.error(f"Error deleting collection: {e_chroma}")
+
+                            # Wipe BM25 index
+                            if os.path.exists(BM25_PATH):
+                                try:
+                                    os.remove(BM25_PATH)
+                                except Exception as e_bm25:
+                                    logging.error(f"Error deleting BM25 index: {e_bm25}")
+                            
+                            status_placeholder.success("🎉 Database wiped completely!")
+                            st.toast("All documents deleted, database wiped!", icon="✅")
+                            st.cache_resource.clear()
+                            st.cache_data.clear()
+                            time.sleep(1.5)
+                            st.rerun()
+                    except Exception as ex:
+                        status_placeholder.error(f"Error: {ex}")
+        else:
+            st.markdown("<span style='font-size:0.75rem;color:#a3a3a3;'>No documents in database.</span>", unsafe_allow_html=True)
 
     retrieval_k = 15
     llm_n = 3
