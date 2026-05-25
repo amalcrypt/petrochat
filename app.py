@@ -622,7 +622,10 @@ def get_database_stats(_db):
         return doc_list, doc_chunks, total_chunks
     except Exception:
         return [], {}, 0
-api_key = os.getenv("GROQ_API_KEY") or os.getenv("GROK_API_KEY") or os.getenv("XAI_API_KEY")
+env_api_key = os.getenv("GROQ_API_KEY") or os.getenv("GROK_API_KEY") or os.getenv("XAI_API_KEY")
+if "user_api_key" not in st.session_state:
+    st.session_state.user_api_key = ""
+api_key = env_api_key if env_api_key else st.session_state.user_api_key
 
 
 # ── Session Management Functions ──────────────────────────────────────────────
@@ -899,9 +902,20 @@ with st.sidebar:
         except Exception as e:
             st.error(f"Error preparing PDF: {e}")
 
+    if not env_api_key:
+        st.divider()
+        st.caption("Configuration")
+        st.session_state.user_api_key = st.text_input(
+            "🔑 Groq API Key:", 
+            value=st.session_state.user_api_key, 
+            type="password", 
+            help="Enter your Groq API Key to start chatting."
+        )
+        api_key = st.session_state.user_api_key
+
 # ── Guard: API Key & DB ────────────────────────────────────────────────────────
 if not api_key:
-    st.error("No Groq API key found. Add GROQ_API_KEY to your .env.")
+    st.info("🔑 Please enter your Groq API Key in the sidebar to start chatting.")
     st.stop()
 if not db_initialized:
     st.warning("Knowledge base not initialized. Run the ingestion script.")
