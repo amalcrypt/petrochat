@@ -241,10 +241,11 @@ st.markdown("""
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@800&display=swap');
 
-  /* Hide Streamlit chrome */
+  /* Hide Streamlit chrome completely to remove top blank space */
   #MainMenu, footer { visibility: hidden; }
   .stDeployButton { display: none; }
-  [data-testid="stHeader"] { background-color: transparent !important; }
+  [data-testid="stHeader"] { display: none !important; }
+  [data-testid="stDecoration"] { display: none !important; }
 
   /* Full-height dark background with glowing radial aura blobs */
   html, body, [data-testid="stAppViewContainer"] {
@@ -354,7 +355,10 @@ st.markdown("""
   .main .block-container {
     max-width: 760px !important;
     margin: 0 auto !important;
-    padding: 0.4rem 1rem 5.5rem !important;
+    padding-top: 0rem !important;
+    padding-bottom: 5.5rem !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
   }
 
   /* Prevent vertical scrolling on welcome screen */
