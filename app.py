@@ -1,9 +1,25 @@
 import os
+import sys
+
+# Clean sys.path to prevent namespace package collision on Streamlit Cloud
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+if parent_dir in sys.path:
+    try:
+        sys.path.remove(parent_dir)
+    except ValueError:
+        pass
+
 import warnings
 import logging
 warnings.filterwarnings("ignore", message=".*torch.classes.*")
 logging.getLogger("torch").setLevel(logging.ERROR)
 os.environ["TRANSFORMERS_VERBOSITY"] = "error"
+try:
+    import transformers
+    transformers.utils.logging.set_verbosity_error()
+except Exception:
+    pass
 import traceback
 import streamlit as st
 from dotenv import load_dotenv

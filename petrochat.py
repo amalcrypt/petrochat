@@ -11,6 +11,11 @@ warnings.simplefilter('ignore')
 os.environ["ANONYMIZED_TELEMETRY"] = "False"
 os.environ["CHROMA_TELEMETRY"] = "False"
 os.environ["TRANSFORMERS_VERBOSITY"] = "error"
+try:
+    import transformers
+    transformers.utils.logging.set_verbosity_error()
+except Exception:
+    pass
 
 import logging
 logging.getLogger("chromadb.telemetry").setLevel(logging.CRITICAL)
