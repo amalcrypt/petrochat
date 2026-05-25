@@ -1,0 +1,19 @@
+# Environments
+.env
+venv/
+.venv/
+ENV/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Databases / Indexes
+chroma_db/
+bm25_retriever.pkl
+
+# Data PDFs
+data/*.pdf
+
