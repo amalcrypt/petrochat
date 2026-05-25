@@ -13,6 +13,7 @@ warnings.simplefilter('ignore')
 
 # Disable ChromaDB telemetry properly
 os.environ["ANONYMIZED_TELEMETRY"] = "False"
+os.environ["TRANSFORMERS_VERBOSITY"] = "error"
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma

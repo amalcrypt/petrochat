@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 # Ignore warnings and disable ChromaDB telemetry
 warnings.simplefilter('ignore')
 os.environ["ANONYMIZED_TELEMETRY"] = "False"
+os.environ["TRANSFORMERS_VERBOSITY"] = "error"
 
 # Load environment variables
 load_dotenv()

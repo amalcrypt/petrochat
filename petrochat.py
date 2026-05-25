@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 warnings.simplefilter('ignore')
 os.environ["ANONYMIZED_TELEMETRY"] = "False"
 os.environ["CHROMA_TELEMETRY"] = "False"
+os.environ["TRANSFORMERS_VERBOSITY"] = "error"
 
 import logging
 logging.getLogger("chromadb.telemetry").setLevel(logging.CRITICAL)

@@ -10,6 +10,7 @@ from groq import Groq
 # Ignore warnings and set environment variables
 warnings.simplefilter('ignore')
 os.environ["ANONYMIZED_TELEMETRY"] = "False"
+os.environ["TRANSFORMERS_VERBOSITY"] = "error"
 load_dotenv()
 
 # Import PetroChat pipeline

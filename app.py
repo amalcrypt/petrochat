@@ -3,6 +3,7 @@ import warnings
 import logging
 warnings.filterwarnings("ignore", message=".*torch.classes.*")
 logging.getLogger("torch").setLevel(logging.ERROR)
+os.environ["TRANSFORMERS_VERBOSITY"] = "error"
 import traceback
 import streamlit as st
 from dotenv import load_dotenv
@@ -486,7 +487,7 @@ function injectSendButton() {
 setInterval(injectSendButton, 800);
 setTimeout(injectSendButton, 1000);
 </script>
-""", height=0)
+""", height="content")
 
 
 # ── Helpers for Assistant Cards ───────────────────────────────────────────────
