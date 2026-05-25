@@ -241,35 +241,32 @@ st.markdown("""
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@800&display=swap');
 
-  /* Hide Streamlit chrome completely to remove top blank space, while keeping the sidebar toggle */
-  #MainMenu, footer { visibility: hidden; }
-  .stDeployButton { display: none; }
+  /* Hide Streamlit footer, but keep native header and MainMenu visible */
+  footer { visibility: hidden; }
   [data-testid="stDecoration"] { display: none !important; }
   [data-testid="stHeader"] {
     background-color: transparent !important;
-    height: 0px !important;
-    min-height: 0px !important;
-    overflow: visible !important;
+    z-index: 999999 !important;
   }
   
-  /* Target the collapse button directly by its test-id so it matches regardless of tag type */
-  div:not([data-testid="stSidebar"]) [data-testid="stSidebarCollapseButton"],
-  [data-testid="stHeader"] [data-testid="stSidebarCollapseButton"] {
-    display: inline-flex !important;
-    position: fixed !important;
-    top: 20px !important;
-    left: 20px !important;
+  /* Style Streamlit's native sidebar collapse controls with premium styling */
+  [data-testid="collapsedControl"],
+  [data-testid="stSidebarCollapseButton"] {
+    display: block !important;
     z-index: 999999 !important;
+  }
+  [data-testid="collapsedControl"] button,
+  [data-testid="stSidebarCollapseButton"] button {
     background-color: rgba(30, 30, 30, 0.6) !important;
     border: 1px solid rgba(255, 255, 255, 0.08) !important;
     border-radius: 8px !important;
-    backdrop-filter: blur(8px) !important;
     color: #ffffff !important;
   }
-  div:not([data-testid="stSidebar"]) [data-testid="stSidebarCollapseButton"]:hover,
-  [data-testid="stHeader"] [data-testid="stSidebarCollapseButton"]:hover {
+  [data-testid="collapsedControl"] button:hover,
+  [data-testid="stSidebarCollapseButton"] button:hover {
     background-color: rgba(16, 185, 129, 0.2) !important;
     border-color: rgba(16, 185, 129, 0.4) !important;
+    color: #10b981 !important;
   }
 
   /* Full-height dark background with glowing radial aura blobs */
@@ -380,15 +377,10 @@ st.markdown("""
   .main .block-container {
     max-width: 760px !important;
     margin: 0 auto !important;
-    padding-top: 2.2rem !important;
+    padding-top: 4rem !important;
     padding-bottom: 7.5rem !important;
     padding-left: 1rem !important;
     padding-right: 1rem !important;
-  }
-
-  /* Prevent vertical scrolling on welcome screen */
-  html:has(.welcome-container), body:has(.welcome-container), [data-testid="stAppViewContainer"]:has(.welcome-container) {
-    overflow-y: hidden !important;
   }
 
   /* Welcome heading */
@@ -436,7 +428,11 @@ st.markdown("""
   }
 
   /* Kill horizontal scroll globally */
-  html, body, [data-testid="stAppViewContainer"], .main {
+  html, body, [data-testid="stAppViewContainer"] {
+    overflow-x: hidden !important;
+  }
+  .main {
+    overflow: visible !important;
     overflow-x: hidden !important;
   }
 
@@ -552,6 +548,7 @@ st.markdown("""
   }
   .welcome-container {
     animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    margin-top: 1.5rem !important;
   }
 
   /* Scrollbar */
