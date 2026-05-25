@@ -376,11 +376,11 @@ st.markdown("""
     background: transparent !important;
   }
 
-  /* Main content area */
+  /* Main content area - Add small padding-top to prevent top-clipping */
   .main .block-container {
     max-width: 760px !important;
     margin: 0 auto !important;
-    padding-top: 0rem !important;
+    padding-top: 2.2rem !important;
     padding-bottom: 5.5rem !important;
     padding-left: 1rem !important;
     padding-right: 1rem !important;
@@ -1115,9 +1115,9 @@ if active_prompt:
 if not st.session_state.messages:
     st.markdown(
         '''
-        <div class="welcome-container" style="display: flex; flex-direction: column; align-items: center; text-align: center; margin-top: 2.5vh; margin-bottom: 1.5rem;">
-            <div style="margin-bottom: 0.8rem; animation: pulseGlow 2.5s infinite alternate ease-in-out;">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <div class="welcome-container" style="display: flex; flex-direction: column; align-items: center; text-align: center; margin-top: 0.5vh; margin-bottom: 1.2rem;">
+            <div style="margin-bottom: 0.3rem; animation: pulseGlow 2.5s infinite alternate ease-in-out;">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M12 2C12 2 6 9 6 14.5C6 17.8137 8.68629 20.5 12 20.5C15.3137 20.5 18 17.8137 18 14.5C18 9 12 2 12 2Z" fill="url(#dropGrad)" />
                     <path d="M12 6C12 6 9.5 10 9.5 14C9.5 15.38 10.62 16.5 12 16.5C13.38 16.5 14.5 15.38 14.5 14C14.5 10 12 6 12 6Z" fill="#ffffff" opacity="0.25" />
                     <defs>
@@ -1129,8 +1129,8 @@ if not st.session_state.messages:
                     </defs>
                 </svg>
             </div>
-            <h1 style="font-family: 'Montserrat', sans-serif; font-size: 3rem; font-weight: 800; background: linear-gradient(135deg, #ffffff 40%, #a7f3d0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0; letter-spacing: -1.2px; line-height: 1.1;">PetroChat AI</h1>
-            <p style="font-size: 15px; font-weight: 400; color: #a3a3a3; margin-top: 0.6rem; max-width: 500px; line-height: 1.45; letter-spacing: 0.1px;">Your intelligent technical assistant for Oil & Gas standards, safety procedures, and operational engineering knowledge.</p>
+            <h1 style="font-family: 'Montserrat', sans-serif; font-size: 3rem; font-weight: 800; background: linear-gradient(135deg, #ffffff 40%, #a7f3d0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-top: 0.1rem; margin-bottom: 0; letter-spacing: -1.2px; line-height: 1.1;">PetroChat AI</h1>
+            <p style="font-size: 15px; font-weight: 400; color: #a3a3a3; margin-top: 0.4rem; max-width: 500px; line-height: 1.4; letter-spacing: 0.1px;">Your intelligent technical assistant for Oil & Gas standards, safety procedures, and operational engineering knowledge.</p>
         </div>
         ''',
         unsafe_allow_html=True
