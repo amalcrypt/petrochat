@@ -331,7 +331,7 @@ st.markdown("""
   .main .block-container {
     max-width: 760px !important;
     margin: 0 auto !important;
-    padding: 2rem 1rem 6rem !important;
+    padding: 0.8rem 1rem 6rem !important;
   }
 
   /* Welcome heading */
@@ -1001,7 +1001,7 @@ if active_prompt:
 if not st.session_state.messages:
     st.markdown(
         '''
-        <div style="text-align: center; margin-top: 12vh; margin-bottom: 3rem;">
+        <div style="text-align: center; margin-top: 4vh; margin-bottom: 2rem;">
             <h1 style="font-family: 'Montserrat', sans-serif; font-size: 4.5rem; font-weight: 800; color: #ffffff; margin-bottom: 0; letter-spacing: -1.5px; line-height: 1.1;">PetroChat AI</h1>
             <p style="font-size: 20px; font-weight: 500; color: #a3a3a3; margin-top: 1rem; letter-spacing: 0.5px;">Your smart AI companion for oil & gas knowledge, safety, and operational insights.</p>
         </div>
