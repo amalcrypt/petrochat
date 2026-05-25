@@ -29,7 +29,7 @@ st.set_page_config(
     page_title="PetroChat",
     page_icon="🛢️",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
 )
 
 # ── Document Name Mapping ─────────────────────────────────────────────────────
@@ -225,8 +225,9 @@ st.markdown("""
   @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@800&display=swap');
 
   /* Hide Streamlit chrome */
-  #MainMenu, header, footer { visibility: hidden; }
+  #MainMenu, footer { visibility: hidden; }
   .stDeployButton { display: none; }
+  [data-testid="stHeader"] { background-color: transparent !important; }
 
   /* Full-height dark background */
   html, body, [data-testid="stAppViewContainer"] {
