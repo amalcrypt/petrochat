@@ -257,8 +257,8 @@ st.markdown("""
   [data-testid="stHeader"] [data-testid="stSidebarCollapseButton"] {
     display: inline-flex !important;
     position: fixed !important;
-    top: 8px !important;
-    left: 8px !important;
+    top: 20px !important;
+    left: 20px !important;
     z-index: 999999 !important;
     background-color: rgba(30, 30, 30, 0.6) !important;
     border: 1px solid rgba(255, 255, 255, 0.08) !important;
