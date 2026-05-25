@@ -381,7 +381,7 @@ st.markdown("""
     max-width: 760px !important;
     margin: 0 auto !important;
     padding-top: 2.2rem !important;
-    padding-bottom: 5.5rem !important;
+    padding-bottom: 7.5rem !important;
     padding-left: 1rem !important;
     padding-right: 1rem !important;
   }
@@ -558,6 +558,15 @@ st.markdown("""
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: #3d3d3d; border-radius: 3px; }
+
+  /* Hide the script injection iframe completely from page layout flow */
+  iframe {
+    position: absolute !important;
+    height: 0px !important;
+    width: 0px !important;
+    border: none !important;
+    visibility: hidden !important;
+  }
 
 </style>
 """, unsafe_allow_html=True)
