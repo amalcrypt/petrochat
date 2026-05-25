@@ -450,8 +450,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Inject a custom send button into the chat input via JS
-import streamlit.components.v1 as components
-components.html("""
+st.iframe("""
 <script>
 function injectSendButton() {
     var parent = window.parent.document;
