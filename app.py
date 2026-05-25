@@ -275,6 +275,32 @@ st.markdown("""
     background: #2d2d2d !important;
   }
 
+  /* Export Chat PDF Button Specific Style */
+  [data-testid="stSidebar"] .stDownloadButton button {
+    background-color: #19c37d !important;
+    border: none !important;
+    color: #ffffff !important;
+    border-radius: 8px !important;
+    padding: 10px 14px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    width: 100% !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    box-shadow: 0 4px 12px rgba(25, 195, 125, 0.25) !important;
+    transition: background-color 0.15s, transform 0.1s !important;
+    text-align: center !important;
+  }
+  [data-testid="stSidebar"] .stDownloadButton button:hover {
+    background-color: #1aae70 !important;
+    color: #ffffff !important;
+    transform: translateY(-1px);
+  }
+  [data-testid="stSidebar"] .stDownloadButton button:active {
+    transform: translateY(0);
+  }
+
   /* Bottom chat container fix */
   [data-testid="stBottom"] {
     background-color: transparent !important;
