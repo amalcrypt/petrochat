@@ -246,22 +246,42 @@ st.markdown("""
   .stDeployButton { display: none; }
   [data-testid="stHeader"] { background-color: transparent !important; }
 
-  /* Full-height dark background */
+  /* Full-height dark background with glowing radial aura blobs */
   html, body, [data-testid="stAppViewContainer"] {
-    background-color: #212121 !important;
-    color: #ececec;
+    background: radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 10% 80%, rgba(20, 184, 166, 0.05) 0%, transparent 45%),
+                #121212 !important;
+    color: #f3f4f6;
     font-family: 'Söhne', ui-sans-serif, system-ui, -apple-system, sans-serif;
   }
 
-  /* Sidebar — ChatGPT dark sidebar */
+  /* Sidebar — ChatGPT dark sidebar with subtle blur */
   [data-testid="stSidebar"] {
-    background-color: #171717 !important;
-    border-right: 1px solid #2d2d2d;
+    background-color: rgba(18, 18, 18, 0.95) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
     padding-top: 0.5rem;
   }
   [data-testid="stSidebar"] * { color: #ececec !important; }
 
-  /* Sidebar new-chat button */
+  /* New Chat Button styling */
+  [data-testid="stSidebar"] [data-testid="stVerticalBlock"] > div:first-child button[kind="secondary"] {
+    border: 1px solid rgba(16, 185, 129, 0.3) !important;
+    background: rgba(16, 185, 129, 0.05) !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+  [data-testid="stSidebar"] [data-testid="stVerticalBlock"] > div:first-child button[kind="secondary"]:hover {
+    background: #10b981 !important;
+    border-color: #10b981 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25) !important;
+    transform: translateY(-1px) !important;
+  }
+
+  /* Sidebar new-chat button fallback */
   .new-chat-btn {
     display: flex; align-items: center; gap: 10px;
     padding: 10px 14px; border-radius: 8px;
@@ -275,11 +295,11 @@ st.markdown("""
   }
   .new-chat-btn:hover { background: #2d2d2d; }
 
-  /* History buttons */
+  /* History buttons in sidebar */
   [data-testid="stSidebar"] button[kind="secondary"] {
     background: transparent !important;
     border: none !important;
-    color: #ececec !important;
+    color: #b3b3b3 !important;
     text-align: left !important;
     padding: 10px 14px !important;
     border-radius: 8px !important;
@@ -287,14 +307,16 @@ st.markdown("""
     margin-bottom: 2px !important;
     justify-content: flex-start !important;
     box-shadow: none !important;
+    transition: all 0.2s ease !important;
   }
   [data-testid="stSidebar"] button[kind="secondary"]:hover {
-    background: #2d2d2d !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    color: #ffffff !important;
   }
 
   /* Export Chat PDF Button Specific Style */
   [data-testid="stSidebar"] .stDownloadButton button {
-    background-color: #19c37d !important;
+    background-color: #10b981 !important;
     border: none !important;
     color: #ffffff !important;
     border-radius: 8px !important;
@@ -305,23 +327,24 @@ st.markdown("""
     display: flex !important;
     justify-content: center !important;
     align-items: center !important;
-    box-shadow: 0 4px 12px rgba(25, 195, 125, 0.25) !important;
-    transition: background-color 0.15s, transform 0.1s !important;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25) !important;
+    transition: all 0.2s ease !important;
     text-align: center !important;
   }
   [data-testid="stSidebar"] .stDownloadButton button:hover {
-    background-color: #1aae70 !important;
+    background-color: #059669 !important;
     color: #ffffff !important;
-    transform: translateY(-1px);
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35) !important;
   }
   [data-testid="stSidebar"] .stDownloadButton button:active {
-    transform: translateY(0);
+    transform: translateY(0) !important;
   }
 
   /* Bottom chat container fix */
   [data-testid="stBottom"] {
     background-color: transparent !important;
-    background: linear-gradient(transparent, #212121 30%) !important;
+    background: linear-gradient(transparent, #121212 30%) !important;
   }
   [data-testid="stBottom"] > div {
     background: transparent !important;
@@ -344,30 +367,33 @@ st.markdown("""
     letter-spacing: -0.3px;
   }
 
-  /* Chat messages */
+  /* Chat messages styling */
   .user-msg {
     display: flex; justify-content: flex-end;
-    margin: 8px 0;
+    margin: 12px 0;
   }
   .user-bubble {
-    background: #2f2f2f;
-    border-radius: 18px 18px 4px 18px;
-    padding: 10px 16px;
+    background: linear-gradient(135deg, #2b2b2b 0%, #222222 100%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 20px 20px 4px 20px;
+    padding: 12px 18px;
     max-width: 75%;
     font-size: 15px;
-    color: #ececec;
-    line-height: 1.55;
+    color: #f3f4f6;
+    line-height: 1.6;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
   }
 
   .assistant-msg {
-    display: flex; align-items: flex-start; gap: 10px;
-    margin: 16px 0;
+    display: flex; align-items: flex-start; gap: 14px;
+    margin: 20px 0;
   }
   .assistant-avatar {
-    width: 30px; height: 30px; border-radius: 50%;
-    background: #19c37d;
+    width: 32px; height: 32px; border-radius: 10px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     display: flex; align-items: center; justify-content: center;
-    font-size: 14px; flex-shrink: 0;
+    font-size: 15px; flex-shrink: 0;
+    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.25);
   }
   .assistant-bubble {
     font-size: 15px; color: #ececec;
@@ -380,22 +406,23 @@ st.markdown("""
     overflow-x: hidden !important;
   }
 
-  /* Override Streamlit chat_input */
+  /* Override Streamlit chat_input with modern glassmorphism */
   [data-testid="stChatInput"] {
-    background: rgba(47, 47, 47, 0.7) !important;
-    backdrop-filter: blur(12px) !important;
-    -webkit-backdrop-filter: blur(12px) !important;
-    border-radius: 32px !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
+    background: rgba(30, 30, 30, 0.7) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border-radius: 28px !important;
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35) !important;
     max-width: 760px !important;
     margin-left: auto !important;
     margin-right: auto !important;
+    transition: all 0.3s ease !important;
   }
   [data-testid="stChatInput"]:focus-within {
-    border: 1px solid rgba(255, 255, 255, 0.3) !important;
-    box-shadow: 0 8px 32px rgba(255, 255, 255, 0.1) !important;
-    background: rgba(47, 47, 47, 0.95) !important;
+    border: 1px solid rgba(16, 185, 129, 0.4) !important;
+    box-shadow: 0 10px 40px rgba(16, 185, 129, 0.12), 0 0 1px rgba(16, 185, 129, 0.5) !important;
+    background: rgba(26, 26, 26, 0.95) !important;
   }
   /* Only hide the inner textarea border, NOT the button */
   [data-testid="stChatInput"] div[data-baseweb="textarea"] {
@@ -411,7 +438,7 @@ st.markdown("""
     border: none !important;
     box-shadow: none !important;
   }
-  [data-testid="stChatInput"] textarea::placeholder { color: #a3a3a3 !important; }
+  [data-testid="stChatInput"] textarea::placeholder { color: #8c8c8c !important; }
 
   /* Hide native Streamlit submit button to use our custom one */
   [data-testid="stChatInput"] button[data-testid="stChatInputSubmitButton"] {
@@ -427,35 +454,70 @@ st.markdown("""
     display: inline-block;
     width: 2px;
     height: 15px;
-    background-color: #19c37d;
+    background-color: #10b981;
     margin-left: 4px;
     animation: blink 0.8s infinite;
     vertical-align: middle;
   }
 
-  /* Suggestion pills */
+  /* Suggestion pills styling (Glassmorphic Cards) */
   [class*="st-key-sug_"] button {
-    background: #2f2f2f !important;
-    border: 1px solid #3d3d3d !important;
-    border-radius: 12px !important;
-    padding: 12px 16px !important;
-    font-size: 13.5px !important;
+    background: rgba(30, 30, 30, 0.45) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    border-radius: 16px !important;
+    padding: 16px 20px !important;
+    font-size: 14px !important;
     color: #ececec !important;
     cursor: pointer !important;
-    transition: background 0.15s !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
     text-align: left !important;
-    line-height: 1.4 !important;
+    line-height: 1.5 !important;
     height: 100% !important;
-    min-height: 85px !important;
+    min-height: 90px !important;
     white-space: normal !important;
     justify-content: flex-start !important;
     align-items: flex-start !important;
   }
-  [class*="st-key-sug_"] button:hover { background: #3d3d3d !important; }
+  [class*="st-key-sug_"] button:hover {
+    background: rgba(16, 185, 129, 0.06) !important;
+    border: 1px solid rgba(16, 185, 129, 0.35) !important;
+    color: #ffffff !important;
+    box-shadow: 0 10px 25px rgba(16, 185, 129, 0.12), 0 0 1px rgba(16, 185, 129, 0.5) !important;
+    transform: translateY(-3px) scale(1.01) !important;
+  }
+  [class*="st-key-sug_"] button:active {
+    transform: translateY(-1px) scale(0.99) !important;
+  }
   [class*="st-key-sug_"] p, [class*="st-key-sug_"] span { 
       margin: 0 !important; 
       text-align: left !important; 
       color: #ececec !important; 
+  }
+
+  /* Fade-in & pulse animations */
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes pulseGlow {
+    0% {
+      filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.4));
+    }
+    100% {
+      filter: drop-shadow(0 0 20px rgba(16, 185, 129, 0.7));
+    }
+  }
+  .welcome-container {
+    animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   /* Scrollbar */
@@ -478,11 +540,19 @@ function injectSendButton() {
     
     var btn = parent.createElement('button');
     btn.className = 'custom-send-btn';
-    btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ececec" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>';
-    btn.style.cssText = 'position:absolute;right:8px;top:50%;transform:translateY(-50%);background:#3d3d3d;border:none;border-radius:8px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:999;transition:all 0.2s;';
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>';
+    btn.style.cssText = 'position:absolute;right:10px;top:50%;transform:translateY(-50%);background:#10b981;border:none;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:999;transition:all 0.25s cubic-bezier(0.4, 0, 0.2, 1);box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);';
     
-    btn.onmouseenter = function() { btn.style.background = '#4d4d4d'; };
-    btn.onmouseleave = function() { btn.style.background = '#3d3d3d'; };
+    btn.onmouseenter = function() { 
+        btn.style.background = '#059669'; 
+        btn.style.transform = 'translateY(-50%) scale(1.06)';
+        btn.style.boxShadow = '0 6px 14px rgba(16, 185, 129, 0.4)';
+    };
+    btn.onmouseleave = function() { 
+        btn.style.background = '#10b981'; 
+        btn.style.transform = 'translateY(-50%) scale(1)';
+        btn.style.boxShadow = '0 4px 10px rgba(16, 185, 129, 0.3)';
+    };
     
     btn.onclick = function(e) {
         e.preventDefault();
@@ -1001,9 +1071,22 @@ if active_prompt:
 if not st.session_state.messages:
     st.markdown(
         '''
-        <div style="text-align: center; margin-top: 4vh; margin-bottom: 2rem;">
-            <h1 style="font-family: 'Montserrat', sans-serif; font-size: 4.5rem; font-weight: 800; color: #ffffff; margin-bottom: 0; letter-spacing: -1.5px; line-height: 1.1;">PetroChat AI</h1>
-            <p style="font-size: 20px; font-weight: 500; color: #a3a3a3; margin-top: 1rem; letter-spacing: 0.5px;">Your smart AI companion for oil & gas knowledge, safety, and operational insights.</p>
+        <div class="welcome-container" style="display: flex; flex-direction: column; align-items: center; text-align: center; margin-top: 5vh; margin-bottom: 2rem;">
+            <div style="margin-bottom: 1.2rem; animation: pulseGlow 2.5s infinite alternate ease-in-out;">
+                <svg width="60" height="60" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2C12 2 6 9 6 14.5C6 17.8137 8.68629 20.5 12 20.5C15.3137 20.5 18 17.8137 18 14.5C18 9 12 2 12 2Z" fill="url(#dropGrad)" />
+                    <path d="M12 6C12 6 9.5 10 9.5 14C9.5 15.38 10.62 16.5 12 16.5C13.38 16.5 14.5 15.38 14.5 14C14.5 10 12 6 12 6Z" fill="#ffffff" opacity="0.25" />
+                    <defs>
+                        <linearGradient id="dropGrad" x1="12" y1="2" x2="12" y2="20.5" gradientUnits="userSpaceOnUse">
+                            <stop offset="0%" stop-color="#34d399" />
+                            <stop offset="60%" stop-color="#10b981" />
+                            <stop offset="100%" stop-color="#047857" />
+                        </linearGradient>
+                    </defs>
+                </svg>
+            </div>
+            <h1 style="font-family: 'Montserrat', sans-serif; font-size: 4rem; font-weight: 800; background: linear-gradient(135deg, #ffffff 40%, #a7f3d0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0; letter-spacing: -1.5px; line-height: 1.1;">PetroChat AI</h1>
+            <p style="font-size: 18px; font-weight: 400; color: #a3a3a3; margin-top: 1rem; max-width: 580px; line-height: 1.5; letter-spacing: 0.2px;">Your intelligent technical assistant for Oil & Gas standards, safety procedures, and operational engineering knowledge.</p>
         </div>
         ''',
         unsafe_allow_html=True
