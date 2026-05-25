@@ -251,7 +251,10 @@ st.markdown("""
     min-height: 0px !important;
     overflow: visible !important;
   }
-  [data-testid="stHeader"] button {
+  
+  /* Target the collapse button directly by its test-id so it matches regardless of tag type */
+  div:not([data-testid="stSidebar"]) [data-testid="stSidebarCollapseButton"],
+  [data-testid="stHeader"] [data-testid="stSidebarCollapseButton"] {
     display: inline-flex !important;
     position: fixed !important;
     top: 8px !important;
@@ -263,7 +266,8 @@ st.markdown("""
     backdrop-filter: blur(8px) !important;
     color: #ffffff !important;
   }
-  [data-testid="stHeader"] button:hover {
+  div:not([data-testid="stSidebar"]) [data-testid="stSidebarCollapseButton"]:hover,
+  [data-testid="stHeader"] [data-testid="stSidebarCollapseButton"]:hover {
     background-color: rgba(16, 185, 129, 0.2) !important;
     border-color: rgba(16, 185, 129, 0.4) !important;
   }
