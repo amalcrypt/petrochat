@@ -241,11 +241,32 @@ st.markdown("""
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@800&display=swap');
 
-  /* Hide Streamlit chrome completely to remove top blank space */
+  /* Hide Streamlit chrome completely to remove top blank space, while keeping the sidebar toggle */
   #MainMenu, footer { visibility: hidden; }
   .stDeployButton { display: none; }
-  [data-testid="stHeader"] { display: none !important; }
   [data-testid="stDecoration"] { display: none !important; }
+  [data-testid="stHeader"] {
+    background-color: transparent !important;
+    height: 0px !important;
+    min-height: 0px !important;
+    overflow: visible !important;
+  }
+  [data-testid="stHeader"] button {
+    display: inline-flex !important;
+    position: fixed !important;
+    top: 8px !important;
+    left: 8px !important;
+    z-index: 999999 !important;
+    background-color: rgba(30, 30, 30, 0.6) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 8px !important;
+    backdrop-filter: blur(8px) !important;
+    color: #ffffff !important;
+  }
+  [data-testid="stHeader"] button:hover {
+    background-color: rgba(16, 185, 129, 0.2) !important;
+    border-color: rgba(16, 185, 129, 0.4) !important;
+  }
 
   /* Full-height dark background with glowing radial aura blobs */
   html, body, [data-testid="stAppViewContainer"] {
