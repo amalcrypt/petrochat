@@ -569,13 +569,18 @@ function injectSendButton() {
     var parent = window.parent.document;
     var chatInput = parent.querySelector('[data-testid="stChatInput"]');
     if (!chatInput) return;
+    
+    // Target the actual textarea wrapper box
+    var box = chatInput.querySelector('div[data-baseweb="textarea"]');
+    if (!box) return;
+    
     // Don't add if already injected
-    if (chatInput.querySelector('.custom-send-btn')) return;
+    if (box.querySelector('.custom-send-btn')) return;
     
     var btn = parent.createElement('button');
     btn.className = 'custom-send-btn';
     btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>';
-    btn.style.cssText = 'position:absolute;right:10px;top:50%;transform:translateY(-50%);background:#10b981;border:none;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:999;transition:all 0.25s cubic-bezier(0.4, 0, 0.2, 1);box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);';
+    btn.style.cssText = 'position:absolute;right:10px;top:50%;transform:translateY(-50%);background:#10b981;border:none;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:999;transition:all 0.25s cubic-bezier(0.4, 0, 0.2, 1);box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);';
     
     btn.onmouseenter = function() { 
         btn.style.background = '#059669'; 
@@ -600,9 +605,14 @@ function injectSendButton() {
         }
     };
     
-    // Make the container relative so absolute positioning works
-    chatInput.style.position = 'relative';
-    chatInput.appendChild(btn);
+    // Make the box relative so absolute positioning is relative to the text area container
+    box.style.position = 'relative';
+    // Add right padding to the textarea to avoid text overlay under the button
+    var textarea = box.querySelector('textarea');
+    if (textarea) {
+        textarea.style.paddingRight = '42px';
+    }
+    box.appendChild(btn);
 }
 setInterval(injectSendButton, 800);
 setTimeout(injectSendButton, 1000);
