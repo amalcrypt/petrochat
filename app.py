@@ -6,6 +6,7 @@ logging.getLogger("torch").setLevel(logging.ERROR)
 import traceback
 import streamlit as st
 from dotenv import load_dotenv
+load_dotenv()
 from groq import Groq
 from petrochat import (
     load_rag_resources,
