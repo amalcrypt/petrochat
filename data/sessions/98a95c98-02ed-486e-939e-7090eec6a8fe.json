@@ -1,0 +1,37 @@
+{
+  "id": "98a95c98-02ed-486e-939e-7090eec6a8fe",
+  "title": "hi petrochat",
+  "messages": [
+    {
+      "role": "user",
+      "content": "hi petrochat",
+      "timestamp": "08:19 PM"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello. How can I assist you with Oil & Gas engineering or petroleum industry procedures today? [ABB Oil & Gas Production Handbook, Page 95]",
+      "sources": [
+        {
+          "source": "abb_production_handbook.pdf",
+          "page": 95,
+          "content": "7 Petrochemical\nPetrochemicals are chemicals made from petroleum or natural gas. Primary\npetrochemicals are divided into three groups, depending on their chemical\nstructure:\nOlefins include ethylene, propylene, and butadiene. Ethylene and propylene\nare important sources of industrial chemicals and plastics products.\nButadiene is used in making synthetic rubber. Olefins are produced by\ncracking.\nAromatic petrochemicals include benzene, toluene, and xylenes. Benzene\nis used in the manufacture of dyes and synthetic detergents. Toluene is used\nin making explosives. Manufacturers use xylenes in making plastics and\nsynthetic fibers. Aromatics are produced by reforming.\nSynthesis gas (SynGas) is a mixture of carbon monoxide and hydrogen,\nand is used to make the petrochemicals ammonia and methanol. Ammonia\nis used in making fertilizers and explosives, where methanol serves as a\nsource for other chemicals.\nFigure 23. Petrochemical tree: feedstock and primary petrochemicals",
+          "score": 0.000997286755591631
+        },
+        {
+          "source": "abb_production_handbook.pdf",
+          "page": 27,
+          "content": "blended to a suitable\nfeedstock to produce the\nrequired quantity and\nquality of end products.\nPhoto: Statoil Mongstad Refinery\nThe economic success of a\nmodern refinery depends\non its ability to accept\nalmost any available crude.\nWith a variety of processes\nsuch as cracking,\nreforming, additives and\nblending, it can provide product in quantity and quality to meet market\ndemand at premium prices.\nThe refinery operations often include product distribution terminals for\ndispensing product to bulk customers such as airports, gasoline stations,\nports and industries.\n2.6 Petrochemical\nChemicals derived from petroleum or natural gas – petrochemicals – are an\nessential part of today’s chemical industry. Petrochemical plants produce\nthousands of chemical compounds. The main feedstock is natural gas,\ncondensates (NGL) and other refinery byproducts such as naphtha, gasoil,\nand benzene. Petrochemical plants are divided into three main primary",
+          "score": 0.0008826929843053222
+        },
+        {
+          "source": "osha_steps_citations.pdf",
+          "page": 1,
+          "content": "contractors, industry associations, and educators with\n Personal Protective Equipment\nthe purpose of promoting a standardized safety\n[1910.132(a)]\norientation for workers in the U.S. Onshore E&P\nIndustry.\n Respiratory Protection\n[1910.134(d)(1)(ii)]\n• Recommended Practices for Safety and Health\nPrograms. Presents a step-by-step approach to\n Medical Services and First Aid\nimplementing a safety and health program, built\n[1910.151(c)]\naround seven core elements that make up a\nSource: OSHA Information System (OIS), 2011-2017, successful program.\nNAICS 211, 213111, and 213112.\n• Hazard Alerts\n• Silica exposure during hydraulic fracturing,\nNIOSH-OSHA hazard alert\nTop Fatality Sources\nOil and Gas\n• Hydrocarbon exposure during manual tank\ngauging, NIOSH-OSHA hazard alert\n Transportation Incidents (42%)\n• Hydrocarbon exposure during manual tank\n Struck by Object or Caught in\ngauging , National STEPS alliance hazard\nEquipment/Material (25%)\nalert\n Fires and Explosions (14%)",
+          "score": 0.0004802393086720258
+        }
+      ],
+      "timestamp": "08:19 PM"
+    }
+  ],
+  "timestamp": 1779806958.6239326
+}

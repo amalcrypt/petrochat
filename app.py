@@ -25,6 +25,7 @@ import streamlit as st
 from dotenv import load_dotenv
 load_dotenv()
 from groq import Groq
+from ui_components import doc_list_html, chunk_cards_html
 from petrochat import (
     load_rag_resources,
     retrieve_and_rerank,
@@ -48,6 +49,10 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+with open(os.path.join(os.path.dirname(__file__), "style.css")) as f:
+    st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+
 
 # ── Document Name Mapping ─────────────────────────────────────────────────────
 STANDARD_NAMES = {
@@ -174,456 +179,213 @@ def generate_pdf(messages):
         
     return bytes(pdf.output())
 
-def render_markdown_to_html(text):
-    import re
-    if not text:
-        return ""
-    
-    # Convert code blocks (triple backticks)
-    text = re.sub(r'```(.*?)\n(.*?)```', r'<pre style="background:#2d2d2d; padding:10px; border-radius:5px; overflow-x:auto;"><code>\2</code></pre>', text, flags=re.DOTALL)
-    text = re.sub(r'`(.*?)`', r'<code style="background:#2d2d2d; padding:2px 4px; border-radius:3px;">\1</code>', text)
-    
-    # Convert bold
-    text = re.sub(r'\*\*(.*?)\*\*|__(.*?)__', r'<strong>\1\2</strong>', text)
-    
-    # Convert italic
-    text = re.sub(r'\*(?!\s)(.*?)(?<!\s)\*|_(?!\s)(.*?)(?<!\s)_', r'<em>\1\2</em>', text)
-    
-    lines = text.split("\n")
-    html_lines = []
-    in_list = False
-    in_sub_list = False
-    
-    for line in lines:
-        stripped = line.strip()
-        is_sub = line.startswith("    ") or line.startswith("\t") or (line.startswith("  ") and stripped.startswith(("+", "*", "-")))
-        
-        if stripped.startswith(("* ", "- ", "+ ")):
-            item_text = stripped[2:]
-            if is_sub:
-                if not in_sub_list:
-                    html_lines.append("<ul style='margin-top:2px; margin-bottom:2px; padding-left:20px;'>")
-                    in_sub_list = True
-                html_lines.append(f"<li>{item_text}</li>")
-            else:
-                if in_sub_list:
-                    html_lines.append("</ul>")
-                    in_sub_list = False
-                if not in_list:
-                    html_lines.append("<ul style='margin-top:2px; margin-bottom:2px; padding-left:20px;'>")
-                    in_list = True
-                html_lines.append(f"<li>{item_text}</li>")
-        else:
-            if in_sub_list:
-                html_lines.append("</ul>")
-                in_sub_list = False
-            if in_list:
-                html_lines.append("</ul>")
-                in_list = True
-            html_lines.append(line)
-            
-    if in_sub_list:
-        html_lines.append("</ul>")
-    if in_list:
-        html_lines.append("</ul>")
-        
-    final_lines = []
-    for line in html_lines:
-        if line.strip() == "":
-            final_lines.append("<br>")
-        else:
-            final_lines.append(line)
-            
-    return "\n".join(final_lines)
 
-# ─── Global CSS — exact ChatGPT look ──────────────────────────────────────────
-st.markdown("""
+
+# --- 2. CUSTOM CSS OVERRIDES (ChatGPT Light Mode Exact Match) ---
+# This CSS strips away Streamlit's default styling and matches the React/Tailwind design perfectly.
+st.markdown('''
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@800&display=swap');
-
-  /* Hide Streamlit footer, but keep native header and MainMenu visible */
-  footer { visibility: hidden; }
-  [data-testid="stDecoration"] { display: none !important; }
-  [data-testid="stHeader"] {
-    background-color: transparent !important;
-    z-index: 999999 !important;
-  }
-  
-  /* Style Streamlit's native sidebar collapse controls with premium styling */
-  [data-testid="collapsedControl"],
-  [data-testid="stSidebarCollapseButton"] {
-    display: block !important;
-    z-index: 999999 !important;
-  }
-  [data-testid="collapsedControl"] button,
-  [data-testid="stSidebarCollapseButton"] button {
-    background-color: rgba(30, 30, 30, 0.6) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    border-radius: 8px !important;
-    color: #ffffff !important;
-  }
-  [data-testid="collapsedControl"] button:hover,
-  [data-testid="stSidebarCollapseButton"] button:hover {
-    background-color: rgba(16, 185, 129, 0.2) !important;
-    border-color: rgba(16, 185, 129, 0.4) !important;
-    color: #10b981 !important;
-  }
-
-  /* Full-height dark background with glowing radial aura blobs */
-  html, body, [data-testid="stAppViewContainer"] {
-    background: radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.08) 0%, transparent 40%),
-                radial-gradient(circle at 10% 80%, rgba(20, 184, 166, 0.05) 0%, transparent 45%),
-                #121212 !important;
-    color: #f3f4f6;
-    font-family: 'Söhne', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  }
-
-  /* Sidebar — ChatGPT dark sidebar with subtle blur */
-  [data-testid="stSidebar"] {
-    background-color: rgba(18, 18, 18, 0.95) !important;
-    border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
-    backdrop-filter: blur(20px) !important;
-    -webkit-backdrop-filter: blur(20px) !important;
-    padding-top: 0.5rem;
-  }
-  [data-testid="stSidebar"] * { color: #ececec !important; }
-
-  /* New Chat Button styling */
-  [data-testid="stSidebar"] [data-testid="stVerticalBlock"] > div:first-child button[kind="secondary"] {
-    border: 1px solid rgba(16, 185, 129, 0.3) !important;
-    background: rgba(16, 185, 129, 0.05) !important;
-    color: #ffffff !important;
-    font-weight: 600 !important;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  }
-  [data-testid="stSidebar"] [data-testid="stVerticalBlock"] > div:first-child button[kind="secondary"]:hover {
-    background: #10b981 !important;
-    border-color: #10b981 !important;
-    color: #ffffff !important;
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25) !important;
-    transform: translateY(-1px) !important;
-  }
-
-  /* Sidebar new-chat button fallback */
-  .new-chat-btn {
-    display: flex; align-items: center; gap: 10px;
-    padding: 10px 14px; border-radius: 8px;
-    color: #ececec; font-size: 14px;
-    cursor: pointer; margin-bottom: 8px;
-    transition: background 0.15s;
-    background: transparent;
-    border: none;
-    width: 100%;
-    text-align: left;
-  }
-  .new-chat-btn:hover { background: #2d2d2d; }
-
-  /* History buttons in sidebar */
-  [data-testid="stSidebar"] button[kind="secondary"] {
-    background: transparent !important;
-    border: none !important;
-    color: #b3b3b3 !important;
-    text-align: left !important;
-    padding: 10px 14px !important;
-    border-radius: 8px !important;
-    font-size: 14px !important;
-    margin-bottom: 2px !important;
-    justify-content: flex-start !important;
-    box-shadow: none !important;
-    transition: all 0.2s ease !important;
-  }
-  [data-testid="stSidebar"] button[kind="secondary"]:hover {
-    background: rgba(255, 255, 255, 0.05) !important;
-    color: #ffffff !important;
-  }
-
-  /* Export Chat PDF Button Specific Style */
-  [data-testid="stSidebar"] .stDownloadButton button {
-    background-color: #10b981 !important;
-    border: none !important;
-    color: #ffffff !important;
-    border-radius: 8px !important;
-    padding: 10px 14px !important;
-    font-size: 14px !important;
-    font-weight: 600 !important;
-    width: 100% !important;
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25) !important;
-    transition: all 0.2s ease !important;
-    text-align: center !important;
-  }
-  [data-testid="stSidebar"] .stDownloadButton button:hover {
-    background-color: #059669 !important;
-    color: #ffffff !important;
-    transform: translateY(-1px) !important;
-    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35) !important;
-  }
-  [data-testid="stSidebar"] .stDownloadButton button:active {
-    transform: translateY(0) !important;
-  }
-
-  /* Bottom chat container fix */
-  [data-testid="stBottom"] {
-    background-color: transparent !important;
-    background: linear-gradient(transparent, #121212 30%) !important;
-  }
-  [data-testid="stBottom"] > div {
-    background: transparent !important;
-  }
-
-  /* Main content area - Add small padding-top to prevent top-clipping */
-  .main .block-container {
-    max-width: 760px !important;
-    margin: 0 auto !important;
-    padding-top: 4rem !important;
-    padding-bottom: 7.5rem !important;
-    padding-left: 1rem !important;
-    padding-right: 1rem !important;
-  }
-
-  /* Welcome heading */
-  .welcome-heading {
-    text-align: center;
-    font-size: 28px;
-    font-weight: 600;
-    color: #ececec;
-    margin: 18vh auto 2rem;
-    letter-spacing: -0.3px;
-  }
-
-  /* Chat messages styling */
-  .user-msg {
-    display: flex; justify-content: flex-end;
-    margin: 12px 0;
-  }
-  .user-bubble {
-    background: linear-gradient(135deg, #2b2b2b 0%, #222222 100%) !important;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 20px 20px 4px 20px;
-    padding: 12px 18px;
-    max-width: 75%;
-    font-size: 15px;
-    color: #f3f4f6;
-    line-height: 1.6;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  }
-
-  .assistant-msg {
-    display: flex; align-items: flex-start; gap: 14px;
-    margin: 20px 0;
-  }
-  .assistant-avatar {
-    width: 32px; height: 32px; border-radius: 10px;
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 15px; flex-shrink: 0;
-    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.25);
-  }
-  .assistant-bubble {
-    font-size: 15px; color: #ececec;
-    line-height: 1.7; padding: 4px 0;
-    max-width: 90%;
-  }
-
-  /* Kill horizontal scroll globally */
-  html, body, [data-testid="stAppViewContainer"] {
-    overflow-x: hidden !important;
-  }
-  .main {
-    overflow: visible !important;
-    overflow-x: hidden !important;
-  }
-
-  /* Override Streamlit chat_input with modern glassmorphism */
-  [data-testid="stChatInput"] {
-    background: rgba(30, 30, 30, 0.7) !important;
-    backdrop-filter: blur(16px) !important;
-    -webkit-backdrop-filter: blur(16px) !important;
-    border-radius: 28px !important;
-    border: 1px solid rgba(255, 255, 255, 0.06) !important;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35) !important;
-    max-width: 760px !important;
-    margin-left: auto !important;
-    margin-right: auto !important;
-    transition: all 0.3s ease !important;
-  }
-  [data-testid="stChatInput"]:focus-within {
-    border: 1px solid rgba(16, 185, 129, 0.4) !important;
-    box-shadow: 0 10px 40px rgba(16, 185, 129, 0.12), 0 0 1px rgba(16, 185, 129, 0.5) !important;
-    background: rgba(26, 26, 26, 0.95) !important;
-  }
-  /* Only hide the inner textarea border, NOT the button */
-  [data-testid="stChatInput"] div[data-baseweb="textarea"] {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-  }
-  [data-testid="stChatInput"] textarea {
-    background: transparent !important;
-    color: #ececec !important;
-    font-size: 16px !important;
-    resize: none !important;
-    border: none !important;
-    box-shadow: none !important;
-  }
-  [data-testid="stChatInput"] textarea::placeholder { color: #8c8c8c !important; }
-
-  /* Hide native Streamlit submit button to use our custom one */
-  [data-testid="stChatInput"] button[data-testid="stChatInputSubmitButton"] {
-    display: none !important;
-  }
-
-  /* Typing animation cursor */
-  @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0; }
-  }
-  .typing-cursor {
-    display: inline-block;
-    width: 2px;
-    height: 15px;
-    background-color: #10b981;
-    margin-left: 4px;
-    animation: blink 0.8s infinite;
-    vertical-align: middle;
-  }
-
-  /* Suggestion pills styling (Glassmorphic Cards) */
-  [class*="st-key-sug_"] button {
-    background: rgba(30, 30, 30, 0.45) !important;
-    border: 1px solid rgba(255, 255, 255, 0.05) !important;
-    border-radius: 16px !important;
-    padding: 10px 14px !important;
-    font-size: 14px !important;
-    color: #ececec !important;
-    cursor: pointer !important;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
-    backdrop-filter: blur(8px) !important;
-    -webkit-backdrop-filter: blur(8px) !important;
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
-    text-align: left !important;
-    line-height: 1.5 !important;
-    height: 100% !important;
-    min-height: 65px !important;
-    white-space: normal !important;
-    justify-content: flex-start !important;
-    align-items: flex-start !important;
-  }
-  [class*="st-key-sug_"] button:hover {
-    background: rgba(16, 185, 129, 0.06) !important;
-    border: 1px solid rgba(16, 185, 129, 0.35) !important;
-    color: #ffffff !important;
-    box-shadow: 0 10px 25px rgba(16, 185, 129, 0.12), 0 0 1px rgba(16, 185, 129, 0.5) !important;
-    transform: translateY(-3px) scale(1.01) !important;
-  }
-  [class*="st-key-sug_"] button:active {
-    transform: translateY(-1px) scale(0.99) !important;
-  }
-  [class*="st-key-sug_"] p, [class*="st-key-sug_"] span { 
-      margin: 0 !important; 
-      text-align: left !important; 
-      color: #ececec !important; 
-  }
-
-  /* Fade-in & pulse animations */
-  @keyframes fadeInUp {
-    from {
-      opacity: 0;
-      transform: translateY(12px);
+    /* Reset & Typography */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+    html, body, [class*="css"] {
+        font-family: 'Inter', sans-serif;
     }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-  @keyframes pulseGlow {
-    0% {
-      filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.4));
-    }
-    100% {
-      filter: drop-shadow(0 0 20px rgba(16, 185, 129, 0.7));
-    }
-  }
-  .welcome-container {
-    animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    margin-top: 1.5rem !important;
-  }
 
-  /* Scrollbar */
-  ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: #3d3d3d; border-radius: 3px; }
+    /* Hide Streamlit Default UI Elements */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    .stDeployButton {display:none;}
 
-  /* Hide the script injection iframe completely from page layout flow */
-  iframe {
-    position: absolute !important;
-    height: 0px !important;
-    width: 0px !important;
-    border: none !important;
-    visibility: hidden !important;
-  }
+    /* App & Typography Variables */
+    :root {
+        --chatgpt-green: #10a37f;
+        --sidebar-bg: #f9f9f9;
+        --main-bg: #ffffff;
+        --text-color: #374151;
+        --border-color: #e5e5e5;
+    }
 
+    /* Main Backgrounds */
+    .stApp {
+        background-color: var(--main-bg);
+    }
+    
+    /* Sidebar Restyling */
+    [data-testid="stSidebar"] {
+        border-right: 1px solid var(--border-color);
+    }
+    [data-testid="stSidebar"] .block-container {
+        padding-top: 1rem !important;
+        padding-left: 0.75rem !important;
+        padding-right: 0.75rem !important;
+    }
+
+    /* New Chat Button Override */
+    .stButton > button {
+        width: 100%;
+        background-color: #ffffff !important;
+        color: #202123 !important;
+        border: 1px solid #d1d5db !important;
+        border-radius: 0.5rem !important;
+        padding: 0.5rem 1rem !important;
+        font-weight: 500 !important;
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        transition: all 0.2s;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
+    .stButton > button:hover {
+        background-color: #f9fafb !important;
+        border-color: #9ca3af !important;
+    }
+    .stButton > button p {
+        font-size: 14px;
+        margin: 0;
+    }
+
+    /* Main Chat Area Padding */
+    .main .block-container {
+        padding-top: 2rem !important;
+        padding-bottom: 120px !important;
+        max-width: 800px !important;
+    }
+
+    /* Chat Messages Restyling */
+    .stChatMessage {
+        padding: 1.5rem 1rem !important;
+        border-radius: 0 !important;
+        background-color: transparent !important;
+    }
+    .stChatMessage[data-testid="stChatMessage"] {
+        border-bottom: 1px solid transparent;
+    }
+    
+    /* Target Assistant Message Background */
+    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) {
+        background-color: #f9f9f9 !important;
+        border-top: 1px solid #f1f1f1 !important;
+        border-bottom: 1px solid #f1f1f1 !important;
+    }
+
+    /* Avatar adjustments */
+    .stChatMessage [data-testid="stChatAvatar"] {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 0.25rem;
+    }
+    
+    /* Text color inside chat */
+    .stChatMessage p, .stChatMessage li {
+        color: #374151 !important;
+        font-size: 15px !important;
+        line-height: 1.75 !important;
+    }
+
+    /* Input Box Styling */
+    [data-testid="stBottom"] {
+        background: linear-gradient(0deg, rgba(255,255,255,1) 70%, rgba(255,255,255,0) 100%);
+        padding-bottom: 20px;
+    }
+    .stChatInputContainer {
+        border-radius: 0.75rem !important;
+        border: 1px solid #d1d5db !important;
+        box-shadow: 0 0 15px rgba(0,0,0,0.05) !important;
+        background-color: white !important;
+        padding-right: 10px !important;
+    }
+    .stChatInputContainer:focus-within {
+        border-color: #9ca3af !important;
+        box-shadow: 0 0 15px rgba(0,0,0,0.1) !important;
+    }
+    
+    /* Inject the disclaimer text below the input */
+    [data-testid="stChatInput"]::after {
+        content: "PetroChat can make mistakes. Verify critical operations data against manual logs.";
+        display: block;
+        text-align: center;
+        font-size: 12px;
+        color: #9ca3af;
+        margin-top: 12px;
+        font-family: 'Inter', sans-serif;
+    }
+
+    /* Custom Sidebar HTML Styles */
+    .sidebar-section-title {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-top: 1.5rem;
+        margin-bottom: 0.5rem;
+        padding-left: 0.5rem;
+    }
+    .sidebar-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 0.5rem;
+        border-radius: 0.375rem;
+        color: #374151;
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        text-decoration: none;
+    }
+    .sidebar-item:hover {
+        background-color: #ececec;
+    }
+    
+    .kb-panel {
+        background-color: white;
+        border: 1px solid #e5e5e5;
+        border-radius: 0.5rem;
+        padding: 0.5rem;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
+    .kb-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem;
+        border-radius: 0.375rem;
+        color: #374151;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+    }
+    .kb-item:hover {
+        background-color: #f9fafb;
+    }
+    .kb-upload-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        width: 100%;
+        padding: 0.5rem;
+        margin-top: 0.5rem;
+        border: 1px dashed #d1d5db;
+        border-radius: 0.375rem;
+        color: #4b5563;
+        font-size: 0.875rem;
+        background: transparent;
+        cursor: pointer;
+    }
+    .kb-upload-btn:hover {
+        background-color: #f9fafb;
+        border-color: #9ca3af;
+    }
+    
+    /* Code block styling fix for light mode */
+    pre code {
+        color: #e5e7eb !important;
+    }
 </style>
-""", unsafe_allow_html=True)
+''', unsafe_allow_html=True)
 
-# Inject a custom send button into the chat input via JS
-st.iframe("""
-<script>
-function injectSendButton() {
-    var parent = window.parent.document;
-    var chatInput = parent.querySelector('[data-testid="stChatInput"]');
-    if (!chatInput) return;
-    
-    // Target the actual textarea wrapper box
-    var box = chatInput.querySelector('div[data-baseweb="textarea"]');
-    if (!box) return;
-    
-    // Don't add if already injected
-    if (box.querySelector('.custom-send-btn')) return;
-    
-    var btn = parent.createElement('button');
-    btn.className = 'custom-send-btn';
-    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>';
-    btn.style.cssText = 'position:absolute;right:10px;top:50%;transform:translateY(-50%);background:#10b981;border:none;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:999;transition:all 0.25s cubic-bezier(0.4, 0, 0.2, 1);box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);';
-    
-    btn.onmouseenter = function() { 
-        btn.style.background = '#059669'; 
-        btn.style.transform = 'translateY(-50%) scale(1.06)';
-        btn.style.boxShadow = '0 6px 14px rgba(16, 185, 129, 0.4)';
-    };
-    btn.onmouseleave = function() { 
-        btn.style.background = '#10b981'; 
-        btn.style.transform = 'translateY(-50%) scale(1)';
-        btn.style.boxShadow = '0 4px 10px rgba(16, 185, 129, 0.3)';
-    };
-    
-    btn.onclick = function(e) {
-        e.preventDefault();
-        var textarea = chatInput.querySelector('textarea');
-        if (textarea && textarea.value.trim()) {
-            textarea.focus();
-            var enterEvent = new KeyboardEvent('keydown', {
-                key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true
-            });
-            textarea.dispatchEvent(enterEvent);
-        }
-    };
-    
-    // Make the box relative so absolute positioning is relative to the text area container
-    box.style.position = 'relative';
-    // Add right padding to the textarea to avoid text overlay under the button
-    var textarea = box.querySelector('textarea');
-    if (textarea) {
-        textarea.style.paddingRight = '42px';
-    }
-    box.appendChild(btn);
-}
-setInterval(injectSendButton, 800);
-setTimeout(injectSendButton, 1000);
-</script>
-""", height="content")
+
 
 
 # ── Helpers for Assistant Cards ───────────────────────────────────────────────
@@ -668,38 +430,7 @@ def source_cards_html(sources: list) -> str:
 </div>"""
 
 
-def chunk_cards_html(sources: list) -> str:
-    html = '<div style="max-height: 350px; overflow-y: auto; overflow-x: hidden; padding-right: 6px;">'
-    for i, s in enumerate(sources, 1):
-        name = STANDARD_NAMES.get(s["source"], s["source"])
-        score = s["score"]
-        score_color = "#10b981" if score >= 0.7 else "#f59e0b" if score >= 0.4 else "#ef4444"
-        preview = s["content"][:380].replace("<", "&lt;").replace(">", "&gt;")
-        html += f"""
-<div style="
-    background:#2f2f2f;
-    border:1px solid #3d3d3d;
-    border-left:3px solid {score_color};
-    border-radius:10px;padding:12px 14px;
-    margin-bottom:10px;
-    overflow-wrap: break-word;
-    word-break: break-word;
-">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:4px;">
-        <div style="font-size:0.75rem;font-weight:600;color:#a3a3a3;">
-            Chunk {i} &nbsp;&middot;&nbsp; {name} &nbsp;&middot;&nbsp; Page {s['page']}
-        </div>
-        <div style="font-size:0.75rem;font-weight:700;color:{score_color};
-                    background:#212121;padding:2px 8px;border-radius:99px;border:1px solid #3d3d3d;">
-            {score:.3f}
-        </div>
-    </div>
-    <div style="font-size:0.8125rem;color:#ececec;line-height:1.55;overflow-wrap:break-word;word-break:break-word;">
-        {preview}{"..." if len(s['content']) > 380 else ""}
-    </div>
-</div>"""
-    html += '</div>'
-    return html
+
 
 def unanswerable_card(text: str) -> str:
     return f"""
@@ -721,42 +452,7 @@ def unanswerable_card(text: str) -> str:
 </div>"""
 
 
-def doc_list_html(docs: list, doc_chunks: dict) -> str:
-    html = '<div style="padding:0 16px;">'
-    doc_colors = ["#ececec", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"]
-    max_chunks = max([doc_chunks.get(d, 0) for d in docs] + [1])
-    for i, doc in enumerate(docs):
-        name = STANDARD_NAMES.get(doc, doc.replace(".pdf", ""))
-        chunks = doc_chunks.get(doc, 0)
-        filepath = os.path.join("./data", doc)
-        size_str = ""
-        if os.path.exists(filepath):
-            sz = os.path.getsize(filepath)
-            size_str = f"{sz/1048576:.1f} MB" if sz > 1048576 else f"{sz/1024:.0f} KB"
-        pct = int(chunks / max_chunks * 100)
-        color = doc_colors[i % len(doc_colors)]
-        html += f"""
-<div style="
-    display:flex;align-items:center;gap:10px;
-    padding:8px 10px;border-radius:8px;margin-bottom:4px;
-    background:#2f2f2f;border:1px solid #3d3d3d;
-    transition:background 0.15s;cursor:default;
-">
-    <div style="
-        width:6px;height:6px;border-radius:50%;
-        background:{color};flex-shrink:0;
-    "></div>
-    <div style="flex:1;min-width:0;">
-        <div style="font-size:0.8rem;color:#ececec;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500;"
-             title="{name} ({doc})">{name}</div>
-        <div style="font-size:0.7rem;color:#a3a3a3;margin-top:2px;">{size_str} &nbsp;&middot;&nbsp; {chunks} chunks</div>
-        <div style="width:100%;height:3px;background:#3d3d3d;border-radius:2px;margin-top:4px;overflow:hidden;">
-            <div style="width:{pct}%;height:100%;background:{color};"></div>
-        </div>
-    </div>
-</div>"""
-    html += "</div>"
-    return html
+
 
 # ── Load RAG Resources ────────────────────────────────────────────────────────
 @st.cache_resource
@@ -823,6 +519,7 @@ def save_session(session_id, title, messages):
         pass
 
 def create_new_session():
+    from datetime import datetime
     new_id = str(uuid.uuid4())
     st.session_state.current_session_id = new_id
     st.session_state.sessions[new_id] = {
@@ -873,13 +570,22 @@ elif not st.session_state.current_session_id:
         key=lambda s: s.get("timestamp", 0),
         reverse=True
     )[0]
-    st.session_state.current_session_id = most_recent["id"]
-    st.session_state.messages = most_recent["messages"]
+
 
 
 # ─── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
-    if st.button("➕ New chat", use_container_width=True, help="Start a new chat"):
+    # Header
+    st.markdown('''
+        <div style="display: flex; align-items: center; gap: 12px; padding: 10px 5px; margin-bottom: 10px;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="#10a37f" stroke="#10a37f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"></path>
+            </svg>
+            <span style="font-size: 1.125rem; font-weight: 600; color: #202123; letter-spacing: 0.025em;">PetroChat</span>
+        </div>
+    ''', unsafe_allow_html=True)
+    
+    if st.button("➕ New Chat"):
         create_new_session()
         st.rerun()
     
@@ -1096,7 +802,7 @@ except Exception as e:
     st.stop()
 
 # Get prompt from chat input
-prompt = st.chat_input("Ask anything about Oil & Gas...")
+prompt = st.chat_input("Ask PetroChat about Oil & Gas...")
 
 # Handle clicked prompt or input prompt
 active_prompt = None
@@ -1107,7 +813,9 @@ elif st.session_state.clicked_prompt:
     st.session_state.clicked_prompt = None
 
 if active_prompt:
-    st.session_state.messages.append({"role": "user", "content": active_prompt})
+    from datetime import datetime
+    now_str = datetime.now().strftime("%I:%M %p")
+    st.session_state.messages.append({"role": "user", "content": active_prompt, "timestamp": now_str})
     # Save user query immediately
     sid = st.session_state.current_session_id
     if sid in st.session_state.sessions:
@@ -1117,72 +825,33 @@ if active_prompt:
             st.session_state.sessions[sid]["title"] = new_title
         save_session(sid, st.session_state.sessions[sid]["title"], st.session_state.messages)
 
-# ─── Welcome screen (no messages yet) ─────────────────────────────────────────
+# Display existing messages
 if not st.session_state.messages:
-    st.markdown(
-        '''
-        <div class="welcome-container" style="display: flex; flex-direction: column; align-items: center; text-align: center; margin-top: 0.5vh; margin-bottom: 1.2rem;">
-            <div style="margin-bottom: 0.3rem; animation: pulseGlow 2.5s infinite alternate ease-in-out;">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 2C12 2 6 9 6 14.5C6 17.8137 8.68629 20.5 12 20.5C15.3137 20.5 18 17.8137 18 14.5C18 9 12 2 12 2Z" fill="url(#dropGrad)" />
-                    <path d="M12 6C12 6 9.5 10 9.5 14C9.5 15.38 10.62 16.5 12 16.5C13.38 16.5 14.5 15.38 14.5 14C14.5 10 12 6 12 6Z" fill="#ffffff" opacity="0.25" />
-                    <defs>
-                        <linearGradient id="dropGrad" x1="12" y1="2" x2="12" y2="20.5" gradientUnits="userSpaceOnUse">
-                            <stop offset="0%" stop-color="#34d399" />
-                            <stop offset="60%" stop-color="#10b981" />
-                            <stop offset="100%" stop-color="#047857" />
-                        </linearGradient>
-                    </defs>
-                </svg>
-            </div>
-            <h1 style="font-family: 'Montserrat', sans-serif; font-size: 3rem; font-weight: 800; background: linear-gradient(135deg, #ffffff 40%, #a7f3d0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-top: 0.1rem; margin-bottom: 0; letter-spacing: -1.2px; line-height: 1.1;">PetroChat AI</h1>
-            <p style="font-size: 15px; font-weight: 400; color: #a3a3a3; margin-top: 0.4rem; max-width: 500px; line-height: 1.4; letter-spacing: 0.1px;">Your intelligent technical assistant for Oil & Gas standards, safety procedures, and operational engineering knowledge.</p>
-        </div>
-        ''',
-        unsafe_allow_html=True
-    )
-    col1, col2 = st.columns(2)
-    prompts = [
-        ("📋", "What are the safe tank gauging practices under OSHA 3843?"),
-        ("⚙️", "What drilling safety requirements does API RP 54 specify?"),
-        ("🏭", "Explain the Refinery Process Safety Management guidelines."),
-        ("🛢️", "What does the ABB handbook say about separator operation?"),
-    ]
-    for idx, (icon, text) in enumerate(prompts):
-        col = col1 if idx % 2 == 0 else col2
-        with col:
-            if st.button(f"**{icon}** {text}", key=f"sug_{idx}", use_container_width=True):
-                st.session_state.clicked_prompt = text
-                st.rerun()
-
-# ─── Chat history ──────────────────────────────────────────────────────────────
+    # Premium Welcome Screen
+    st.markdown("""
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 15vh; text-align: center; padding: 0 20px;">
+        <h1 style="font-size: 3rem; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 0.5rem; background: -webkit-linear-gradient(45deg, #10a37f, #0c7b5f); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">PetroChat</h1>
+        <p style="font-size: 1.1rem; color: #6b7280; max-width: 600px; line-height: 1.5;">
+            AI-powered Oil & Gas knowledge assistant for industry insights, technical documents, and intelligent conversations.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
 else:
-    st.markdown(
-        '''<div style="margin-bottom: 1.5rem;">
-    <span style="font-family: 'Montserrat', sans-serif; font-size: 1.6rem; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">PetroChat AI</span>
-</div>''',
-        unsafe_allow_html=True
-    )
-    for msg in st.session_state.messages:
-        if msg["role"] == "user":
-            st.markdown(
-                f"""<div class="user-msg">
-                  <div class="user-bubble">{msg["content"]}</div>
-                </div>""",
-                unsafe_allow_html=True
-            )
-        else:
-            st.markdown(
-                f"""<div class="assistant-msg">
-                  <div class="assistant-avatar">🛢️</div>
-                  <div class="assistant-bubble">{render_markdown_to_html(msg["content"])}</div>
-                </div>""",
-                unsafe_allow_html=True
-            )
-            sources = msg.get("sources", [])
-            if sources:
+    for message in st.session_state.messages:
+        # User doesn't use custom avatar, allowing Streamlit to assign chatAvatarIcon-user
+        avatar = "💧" if message["role"] == "assistant" else None
+        with st.chat_message(message["role"], avatar=avatar):
+            time_str = message.get("timestamp", "")
+            
+            if message["role"] == "user":
+                st.markdown(f'<div class="msg-bubble user-bubble">{message["content"]}</div><div class="msg-time">{time_str}</div>', unsafe_allow_html=True)
+            else:
+                st.markdown(message["content"])
+                st.markdown(f'<div class="msg-time">{time_str}</div>', unsafe_allow_html=True)
+                
+            if "sources" in message and message["sources"]:
                 with st.expander("▼ Retrieved Context"):
-                    st.markdown(chunk_cards_html(sources), unsafe_allow_html=True)
+                    st.markdown(chunk_cards_html(message["sources"]), unsafe_allow_html=True)
 
 # ─── Process RAG & Streaming for Active Prompt ────────────────────────────────
 if active_prompt:
@@ -1226,36 +895,29 @@ if active_prompt:
         log_interaction(active_prompt, standalone, retrieved_docs, answer)
 
     # ── Typing animation ──
-    answer_placeholder = st.empty()
-    displayed = ""
-    total_len = len(answer)
-    
-    # Target around 35 steps to keep the animation duration to ~1 second, preventing WebSocket congestion
-    target_steps = 35
-    chunk_size = max(1, total_len // target_steps)
-    delay = 0.025 # 25ms per frame
+    with st.chat_message("assistant", avatar="💧"):
+        answer_placeholder = st.empty()
+        displayed = ""
+        total_len = len(answer)
         
-    for i in range(0, total_len, chunk_size):
-        displayed += answer[i:i+chunk_size]
-        answer_placeholder.markdown(
-            f"""<div class="assistant-msg">
-              <div class="assistant-avatar">🛢️</div>
-              <div class="assistant-bubble">{render_markdown_to_html(displayed)}<span class="typing-cursor">|</span></div>
-            </div>""",
-            unsafe_allow_html=True
-        )
-        time.sleep(delay)
+        target_steps = 35
+        chunk_size = max(1, total_len // target_steps)
+        delay = 0.025 # 25ms per frame
+            
+        for i in range(0, total_len, chunk_size):
+            displayed += answer[i:i+chunk_size]
+            answer_placeholder.markdown(displayed + "▌")
+            time.sleep(delay)
+            
+        # Final render without cursor
+        answer_placeholder.markdown(answer)
+        st.markdown(f'<div class="msg-time">{now_str}</div>', unsafe_allow_html=True)
         
-    # Final render without cursor
-    answer_placeholder.markdown(
-        f"""<div class="assistant-msg">
-          <div class="assistant-avatar">🛢️</div>
-          <div class="assistant-bubble">{render_markdown_to_html(answer)}</div>
-        </div>""",
-        unsafe_allow_html=True
-    )
+        if sources_info:
+            with st.expander("▼ Retrieved Context"):
+                st.markdown(chunk_cards_html(sources_info), unsafe_allow_html=True)
 
-    st.session_state.messages.append({"role": "assistant", "content": answer, "sources": sources_info})
+    st.session_state.messages.append({"role": "assistant", "content": answer, "sources": sources_info, "timestamp": now_str})
     if sid in st.session_state.sessions:
         st.session_state.sessions[sid]["messages"] = st.session_state.messages
         save_session(sid, st.session_state.sessions[sid]["title"], st.session_state.messages)

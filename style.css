@@ -1,0 +1,201 @@
+/* Reset & Typography */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+html, body, [class*="css"] {
+    font-family: 'Inter', sans-serif;
+}
+
+/* Hide Streamlit Default UI Elements */
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+.stDeployButton {display:none;}
+
+/* App & Typography Variables */
+:root {
+    --chatgpt-green: #10a37f;
+    --sidebar-bg: #f9f9f9;
+    --main-bg: #ffffff;
+    --text-color: #374151;
+    --border-color: #e5e5e5;
+    --button-hover: #ececec;
+}
+
+/* Base Main Area */
+.main {
+    background-color: var(--main-bg) !important;
+}
+
+/* Sidebar Restyling */
+[data-testid="stSidebar"] {
+    border-right: 1px solid var(--border-color);
+}
+[data-testid="stSidebar"] .block-container {
+    padding-top: 1rem !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+}
+[data-testid="stSidebar"] hr {
+    margin: 1.5rem 0;
+    border-color: var(--border-color);
+}
+[data-testid="stSidebarNav"] {
+    display: none;
+}
+
+/* Sidebar Headings */
+.sidebar-section-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #8e8ea0;
+    margin-bottom: 0.75rem;
+    padding-left: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* New Chat Button Override */
+.stButton > button {
+    width: 100%;
+    background-color: #ffffff !important;
+    color: #202123 !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 0.5rem !important;
+    padding: 0.5rem 1rem !important;
+    font-weight: 500 !important;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    transition: all 0.2s;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+.stButton > button:hover {
+    background-color: var(--button-hover) !important;
+    border-color: #9ca3af !important;
+    color: #111827 !important;
+}
+
+/* Knowledge Base Panel styling */
+.kb-panel {
+    background-color: #f3f4f6;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    margin-top: 1rem;
+    border: 1px solid #e5e7eb;
+}
+.kb-item {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem;
+    font-size: 0.875rem;
+    color: #374151;
+    border-radius: 0.375rem;
+    margin-bottom: 0.25rem;
+    transition: background-color 0.15s;
+    gap: 10px;
+}
+.kb-item:hover {
+    background-color: #e5e7eb;
+}
+
+/* Reset basic padding for block container to match ChatGPT closely */
+.main .block-container {
+    padding-bottom: 150px !important;
+}
+
+/* Chat Message Layout overrides */
+[data-testid="stChatMessage"] {
+    background-color: transparent !important;
+    border: none !important;
+    padding: 1rem 0 !important;
+}
+
+/* Right-align user messages by detecting the user-bubble class */
+[data-testid="stChatMessage"]:has(.user-bubble) {
+    flex-direction: row-reverse;
+}
+
+[data-testid="stChatMessage"]:has(.user-bubble) .stMarkdown {
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+/* Message Bubble Styles */
+.msg-bubble {
+    padding: 0.85rem 1.2rem;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    display: inline-block;
+    max-width: 100%;
+}
+
+.user-bubble {
+    background-color: #f3f4f6;
+    color: #111827;
+    border-radius: 1.25rem 1.25rem 0.25rem 1.25rem;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    text-align: left; /* Keep text left aligned inside bubble */
+}
+
+/* Dark mode support for user bubble */
+@media (prefers-color-scheme: dark) {
+    .user-bubble {
+        background-color: #374151;
+        color: #f9fafb;
+    }
+}
+
+.ai-bubble {
+    background-color: transparent;
+    color: inherit;
+    border-radius: 0;
+}
+
+.msg-time {
+    font-size: 0.7rem;
+    color: #9ca3af;
+    margin-top: 4px;
+    font-weight: 500;
+}
+
+/* Chat Input Styling */
+.stChatInputContainer {
+    border-radius: 1rem !important;
+    padding: 0.5rem 0.5rem 0.5rem 1rem !important;
+    box-shadow: 0 0 15px rgba(0,0,0,0.05) !important;
+    border: 1px solid #e5e7eb !important;
+}
+
+.stChatInputContainer:focus-within {
+    border-color: #10a37f !important;
+    box-shadow: 0 0 0 1px #10a37f !important;
+    outline: none !important;
+}
+
+@media (prefers-color-scheme: dark) {
+    .stChatInputContainer {
+        border-color: #374151 !important;
+        background-color: #1f2937 !important;
+    }
+}
+
+/* Native Submit Button Enhancement */
+[data-testid="stChatInputSubmitButton"] {
+    background-color: #10a37f !important;
+    border-radius: 0.5rem !important;
+    color: white !important;
+    height: 36px !important;
+    width: 36px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: background-color 0.2s;
+}
+
+[data-testid="stChatInputSubmitButton"]:hover {
+    background-color: #0c7b5f !important;
+}
+
+[data-testid="stChatInputSubmitButton"] svg {
+    fill: white !important;
+}

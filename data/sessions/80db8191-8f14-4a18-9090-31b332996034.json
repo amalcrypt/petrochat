@@ -1,0 +1,97 @@
+{
+  "id": "80db8191-8f14-4a18-9090-31b332996034",
+  "title": "What are the safe tank gauging...",
+  "messages": [
+    {
+      "role": "user",
+      "content": "What are the safe tank gauging practices under OSHA 3843?",
+      "timestamp": "08:16 PM"
+    },
+    {
+      "role": "assistant",
+      "content": "Under OSHA 3843, safe tank gauging practices include [OSHA 3843, Page 6]:\n* Training workers in proper work practices, such as tank-opening procedures, to minimize risks for exposures\n* Ensuring intrinsic safety by proper grounding and prohibiting the use of spark-producing devices or equipment\n* Establishing administrative controls to reduce the number of times throughout a shift a worker is required to manually gauge tanks\n* Safely reducing tank pressure prior to gauging\n* Using appropriate respiratory protection, including a supplied air respirator (SAR) and/or self-contained breathing apparatus (SCBA) in areas where IDLH VOC exposures may occur\n* Providing hazard communication training in a language that employees understand to ensure that general site workers, tank gaugers and samplers are aware of the hazards associated with tank gauging [OSHA 3843, Page 6]. \n\nAdditionally, employers should consult with a trained occupational safety and health professional to determine the appropriate respirator to be used and to ensure that an appropriate air-sampling strategy is used [OSHA 3843, Page 6].",
+      "sources": [
+        {
+          "source": "osha_steps_citations.pdf",
+          "page": 1,
+          "content": "• Hydrocarbon exposure during manual tank\n Struck by Object or Caught in\ngauging , National STEPS alliance hazard\nEquipment/Material (25%)\nalert\n Fires and Explosions (14%)\n• Hot work on oilfield tanks, tankers, and other\n Exposure to Electric Current or related equipment –English\nHarmful Substances (9%)\n• Hot work on oilfield tanks, tankers, and other\n Falls, Slips, Trips (8%) related equipment –Spanish\n• Ignition of vapors by mobile engines and\nSource: U.S. Bureau of Labor Statistics, 2003-2015,\nNAICS 211, 213111, and 213112. auxiliary motors\nwww.osha.gov/safeandsoundweek",
+          "score": 0.7806845307350159
+        },
+        {
+          "source": "osha_3843_tank_gauging.pdf",
+          "page": 6,
+          "content": "show workers the pressure in the tank and sampling is not feasible or engineering controls\nallow a trained worker to follow appropriate are not implemented, (a) train workers in proper\nprocedures, such as actuating a blowdown work practices, such as tank-opening procedures,\nvalve, venting gas to a flare, or using appropriate that can minimize risks for exposures, (b) ensure\nrespiratory protection, such as a self-contained intrinsic safety by proper grounding and prohibiting\nbreathing apparatus or an air-line respirator. the use of spark producing devices or equipment,\n(c) establish administrative controls to reduce\n4. Conduct worker exposure assessments to\nthe number of times throughout a shift a worker\ndetermine exposure risks to volatile hydrocarbons\nis required to manually gauge tanks, (d) safely\nand other contaminants. Employers may consult\nreduce tank pressure prior to gauging, and (e) use\nan occupational safety and health professional",
+          "score": 0.6093935966491699
+        },
+        {
+          "source": "osha_3843_tank_gauging.pdf",
+          "page": 6,
+          "content": "is required to manually gauge tanks, (d) safely\nand other contaminants. Employers may consult\nreduce tank pressure prior to gauging, and (e) use\nan occupational safety and health professional\nappropriate respiratory protection, including a\ntrained and certified in industrial hygiene and who\nsupplied air respirator (SAR) and/or self-contained\nhas knowledge and experience with combined\nbreathing apparatus (SCBA) in areas where IDLH\nflammable gas and vapor exposures to ensure that\nVOC exposures may occur (i.e., during manual tank\nan appropriate air-sampling strategy is used.\ngauging/sampling). Employers should consult with a\ntrained occupational safety and health professional\n5. Provide hazard communication training in a language\nto determine the appropriate respirator to be used.\nthat employees understand to ensure that general\nNIOSH guidance for selecting respirators is at: http://\nsite workers, tank gaugers and samplers, water\nwww.cdc.gov/nioshdocs/2005-100/default.html.",
+          "score": 0.19913651049137115
+        }
+      ],
+      "timestamp": "08:16 PM"
+    },
+    {
+      "role": "user",
+      "content": "make short",
+      "timestamp": "08:16 PM"
+    },
+    {
+      "role": "assistant",
+      "content": "Safe tank gauging practices under OSHA 3843 include [OSHA 3843, Page 6]:\n* Training workers in proper work practices\n* Ensuring intrinsic safety by proper grounding\n* Establishing administrative controls to reduce manual gauging\n* Safely reducing tank pressure prior to gauging\n* Using appropriate respiratory protection, such as a self-contained breathing apparatus (SCBA) or supplied air respirator (SAR) [OSHA 3843, Page 6].",
+      "sources": [
+        {
+          "source": "osha_3843_tank_gauging.pdf",
+          "page": 6,
+          "content": "show workers the pressure in the tank and sampling is not feasible or engineering controls\nallow a trained worker to follow appropriate are not implemented, (a) train workers in proper\nprocedures, such as actuating a blowdown work practices, such as tank-opening procedures,\nvalve, venting gas to a flare, or using appropriate that can minimize risks for exposures, (b) ensure\nrespiratory protection, such as a self-contained intrinsic safety by proper grounding and prohibiting\nbreathing apparatus or an air-line respirator. the use of spark producing devices or equipment,\n(c) establish administrative controls to reduce\n4. Conduct worker exposure assessments to\nthe number of times throughout a shift a worker\ndetermine exposure risks to volatile hydrocarbons\nis required to manually gauge tanks, (d) safely\nand other contaminants. Employers may consult\nreduce tank pressure prior to gauging, and (e) use\nan occupational safety and health professional",
+          "score": 0.16655276715755463
+        },
+        {
+          "source": "osha_3843_tank_gauging.pdf",
+          "page": 6,
+          "content": "is required to manually gauge tanks, (d) safely\nand other contaminants. Employers may consult\nreduce tank pressure prior to gauging, and (e) use\nan occupational safety and health professional\nappropriate respiratory protection, including a\ntrained and certified in industrial hygiene and who\nsupplied air respirator (SAR) and/or self-contained\nhas knowledge and experience with combined\nbreathing apparatus (SCBA) in areas where IDLH\nflammable gas and vapor exposures to ensure that\nVOC exposures may occur (i.e., during manual tank\nan appropriate air-sampling strategy is used.\ngauging/sampling). Employers should consult with a\ntrained occupational safety and health professional\n5. Provide hazard communication training in a language\nto determine the appropriate respirator to be used.\nthat employees understand to ensure that general\nNIOSH guidance for selecting respirators is at: http://\nsite workers, tank gaugers and samplers, water\nwww.cdc.gov/nioshdocs/2005-100/default.html.",
+          "score": 0.12320756912231445
+        },
+        {
+          "source": "osha_steps_citations.pdf",
+          "page": 1,
+          "content": "contractors, industry associations, and educators with\n Personal Protective Equipment\nthe purpose of promoting a standardized safety\n[1910.132(a)]\norientation for workers in the U.S. Onshore E&P\nIndustry.\n Respiratory Protection\n[1910.134(d)(1)(ii)]\n• Recommended Practices for Safety and Health\nPrograms. Presents a step-by-step approach to\n Medical Services and First Aid\nimplementing a safety and health program, built\n[1910.151(c)]\naround seven core elements that make up a\nSource: OSHA Information System (OIS), 2011-2017, successful program.\nNAICS 211, 213111, and 213112.\n• Hazard Alerts\n• Silica exposure during hydraulic fracturing,\nNIOSH-OSHA hazard alert\nTop Fatality Sources\nOil and Gas\n• Hydrocarbon exposure during manual tank\ngauging, NIOSH-OSHA hazard alert\n Transportation Incidents (42%)\n• Hydrocarbon exposure during manual tank\n Struck by Object or Caught in\ngauging , National STEPS alliance hazard\nEquipment/Material (25%)\nalert\n Fires and Explosions (14%)",
+          "score": 0.08719108998775482
+        }
+      ],
+      "timestamp": "08:16 PM"
+    },
+    {
+      "role": "user",
+      "content": "large",
+      "timestamp": "08:16 PM"
+    },
+    {
+      "role": "assistant",
+      "content": "I cannot answer this question based on the provided documents.",
+      "sources": [
+        {
+          "source": "osha_steps_citations.pdf",
+          "page": 1,
+          "content": "• Hydrocarbon exposure during manual tank\n Struck by Object or Caught in\ngauging , National STEPS alliance hazard\nEquipment/Material (25%)\nalert\n Fires and Explosions (14%)\n• Hot work on oilfield tanks, tankers, and other\n Exposure to Electric Current or related equipment –English\nHarmful Substances (9%)\n• Hot work on oilfield tanks, tankers, and other\n Falls, Slips, Trips (8%) related equipment –Spanish\n• Ignition of vapors by mobile engines and\nSource: U.S. Bureau of Labor Statistics, 2003-2015,\nNAICS 211, 213111, and 213112. auxiliary motors\nwww.osha.gov/safeandsoundweek",
+          "score": 0.7383954524993896
+        },
+        {
+          "source": "osha_3843_tank_gauging.pdf",
+          "page": 6,
+          "content": "show workers the pressure in the tank and sampling is not feasible or engineering controls\nallow a trained worker to follow appropriate are not implemented, (a) train workers in proper\nprocedures, such as actuating a blowdown work practices, such as tank-opening procedures,\nvalve, venting gas to a flare, or using appropriate that can minimize risks for exposures, (b) ensure\nrespiratory protection, such as a self-contained intrinsic safety by proper grounding and prohibiting\nbreathing apparatus or an air-line respirator. the use of spark producing devices or equipment,\n(c) establish administrative controls to reduce\n4. Conduct worker exposure assessments to\nthe number of times throughout a shift a worker\ndetermine exposure risks to volatile hydrocarbons\nis required to manually gauge tanks, (d) safely\nand other contaminants. Employers may consult\nreduce tank pressure prior to gauging, and (e) use\nan occupational safety and health professional",
+          "score": 0.2389073371887207
+        },
+        {
+          "source": "osha_3843_tank_gauging.pdf",
+          "page": 6,
+          "content": "hazard area, report symptoms to supervisors).\nhydrocarbon gases and vapors, thereby eliminating\nthe need to routinely open thief hatches to 7. Do not permit employees to work alone\nsample. These sampling taps should minimize the when tank gauging or working around tanks,\nmagnitude of hydrocarbon plumes and should limit thief hatches, or other areas where they may\nthe need for workers to access the top of tanks. encounter process fluids. Observers should be\ntrained on proper rescue procedures and be\n3. Install thief hatch pressure indicators to provide\nstationed outside potentially hazardous areas.\nan immediate visual indicator of tank pressures\nand potential hazards. Pressure indicators can 8. As an interim measure, where remote gauging or\nshow workers the pressure in the tank and sampling is not feasible or engineering controls\nallow a trained worker to follow appropriate are not implemented, (a) train workers in proper",
+          "score": 0.15173788368701935
+        }
+      ],
+      "timestamp": "08:16 PM"
+    }
+  ],
+  "timestamp": 1779806816.692499
+}
