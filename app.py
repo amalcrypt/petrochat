@@ -467,6 +467,20 @@ def get_rag_resources():
 
 db, bm25_retriever, reranker, init_error = get_rag_resources()
 
+if init_error:
+    import glob
+    existing_pdfs = glob.glob(os.path.join("./data", "*.pdf"))
+    if existing_pdfs:
+        with st.spinner("Auto-ingesting existing documents from data folder... Please wait."):
+            from ingest import run_ingestion
+            success, msg = run_ingestion(force=True)
+            if success:
+                st.cache_resource.clear()
+                st.cache_data.clear()
+                st.rerun()
+            else:
+                st.error(f"Failed to auto-ingest documents: {msg}")
+
 @st.cache_data
 def get_database_stats(_db):
     try:
