@@ -299,16 +299,7 @@ st.markdown('''
         box-shadow: 0 0 15px rgba(0,0,0,0.1) !important;
     }
     
-    /* Inject the disclaimer text below the input */
-    [data-testid="stChatInput"]::after {
-        content: "PetroChat can make mistakes. Verify critical operations data against manual logs.";
-        display: block;
-        text-align: center;
-        font-size: 12px;
-        color: #9ca3af;
-        margin-top: 12px;
-        font-family: 'Inter', sans-serif;
-    }
+  
 
     /* Custom Sidebar HTML Styles */
     .sidebar-section-title {

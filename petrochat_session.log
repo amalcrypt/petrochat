@@ -372,3 +372,21 @@ I cannot answer this question based on the provided documents.
 Hello. How can I assist you with Oil & Gas engineering or petroleum industry procedures today? [ABB Oil & Gas Production Handbook, Page 95]
 
 --------------------------------------------------------------------------------
+
+## Interaction at 2026-05-29T10:21:03.142202
+* **User Query**: hi oil
+* **Standalone Query**: Same as original query
+
+* **Retrieved Context Chunks (Top Reranked)**:
+  1. [Score: 0.1267] abb_production_handbook.pdf (Page 33): "origin (250-290/290-350 million years ago). In some areas, strong uplift, erosion and cracking of the rock above have allowed hydrocarbons to leak out, leaving heavy oil reservoirs or tar pools. Some ..."
+  2. [Score: 0.0803] abb_production_handbook.pdf (Page 135): "9 Unconventional and conventional resources and environmental effects About 81.1% of the world’s primary energy consumption in 2012 was fossil fuels; 27.3% was coal, oil production was 32.4% or about ..."
+  3. [Score: 0.0561] abb_production_handbook.pdf (Page 137): "releases bitumen from the oil sand, and allows small air bubbles to attach to the bitumen droplets. The bitumen froth floats to the top of separation vessels, and is further treated to remove residual..."
+
+* **Final Answer**:
+It seems like you're inquiring about oil. Oil is a hydrocarbon that originates from ancient plants and animals, with its formation dating back to 250-290 or 290-350 million years ago [ABB Oil & Gas Production Handbook, Page 33]. The oil and gas are pressurized in the pores of the absorbent formation rock, and when a well is drilled into the reservoir structure, the hydrostatic formation pressure drives the hydrocarbons out of the rock and up into the well [ABB Oil & Gas Production Handbook, Page 33]. 
+
+Some of the world's largest oil deposits are tar sands, where the volatile compounds have evaporated from shallow sandy formations, leaving huge volumes of bitumen-soaked sands [ABB Oil & Gas Production Handbook, Page 33]. These tar sands can be found in areas like Canada (Alberta) and Venezuela, with estimated reserves of 250 billion barrels, equivalent to the total reserves of Saudi Arabia [ABB Oil & Gas Production Handbook, Page 137]. 
+
+Oil production accounts for 32.4% of the world's primary energy consumption, with total oil and gas production estimated at 6.4 billion tons of oil equivalent per year [ABB Oil & Gas Production Handbook, Page 135]. Proven reserves of oil are estimated at 201 billion tons of oil equivalent, which is expected to last for about 56 years [ABB Oil & Gas Production Handbook, Page 135].
+
+--------------------------------------------------------------------------------
