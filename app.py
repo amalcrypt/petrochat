@@ -455,7 +455,7 @@ def unanswerable_card(text: str) -> str:
 
 
 # ── Load RAG Resources ────────────────────────────────────────────────────────
-@st.cache_resource
+@st.cache_resource(show_spinner=False)
 def get_rag_resources():
     try:
         db, bm25, reranker = load_rag_resources(raise_on_missing=True)
@@ -465,7 +465,8 @@ def get_rag_resources():
     except Exception as e:
         return None, None, None, f"{e}\\n{traceback.format_exc()}"
 
-db, bm25_retriever, reranker, init_error = get_rag_resources()
+with st.spinner("Loading AI Models & Knowledge Base..."):
+    db, bm25_retriever, reranker, init_error = get_rag_resources()
 
 if init_error:
     import glob
