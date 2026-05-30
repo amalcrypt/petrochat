@@ -1,0 +1,37 @@
+{
+  "id": "ccaa6509-650b-4f71-b473-b80ccd44c236",
+  "title": "hi",
+  "messages": [
+    {
+      "role": "user",
+      "content": "hi",
+      "timestamp": "12:44 PM"
+    },
+    {
+      "role": "assistant",
+      "content": "[!] Error generating response from LLM: Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01ks1z4kdkfvhsme9zfa6www3k` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99942, Requested 1279. Please try again in 17m34.944s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",
+      "sources": [
+        {
+          "source": "Web Search (Tavily)",
+          "page": "N/A",
+          "content": "Vocabulary.com\n\n# hi\n\nHi is a common greeting, more casual than \"hello.\" When you walk down the street in a small town, it might seem like everyone you pass says \"hi.\"\n\nThe word hi is a good, nearly all-purpose greeting — it's appropriate in all but the most formal circumstances, so you might want to skip saying, \"Hi\" to the Queen when you meet her. When you greet someone, you have a lot of words to choose from, including \"hey,\" \"hello,\" \"hiya,\" and \"howdy,\" but hi is probably the most common. The first mention of hi attributes it to a Kansas native American in the 1800s.\n\n### Vocabulary lists containing hi\n\nview more about the vocabulary list",
+          "score": 0.9983896017074585
+        },
+        {
+          "source": "osha_steps_citations.pdf",
+          "page": 1,
+          "content": "contractors, industry associations, and educators with\n Personal Protective Equipment\nthe purpose of promoting a standardized safety\n[1910.132(a)]\norientation for workers in the U.S. Onshore E&P\nIndustry.\n Respiratory Protection\n[1910.134(d)(1)(ii)]\n• Recommended Practices for Safety and Health\nPrograms. Presents a step-by-step approach to\n Medical Services and First Aid\nimplementing a safety and health program, built\n[1910.151(c)]\naround seven core elements that make up a\nSource: OSHA Information System (OIS), 2011-2017, successful program.\nNAICS 211, 213111, and 213112.\n• Hazard Alerts\n• Silica exposure during hydraulic fracturing,\nNIOSH-OSHA hazard alert\nTop Fatality Sources\nOil and Gas\n• Hydrocarbon exposure during manual tank\ngauging, NIOSH-OSHA hazard alert\n Transportation Incidents (42%)\n• Hydrocarbon exposure during manual tank\n Struck by Object or Caught in\ngauging , National STEPS alliance hazard\nEquipment/Material (25%)\nalert\n Fires and Explosions (14%)",
+          "score": 0.06518364697694778
+        },
+        {
+          "source": "osha_3918_psm_refinery.pdf",
+          "page": 40,
+          "content": "U.S. Department of Labor\nFor more information:\nOccupational\nSafety and Health\nAdministration\nwww.osha.gov (800) 321-OSHA (6742)",
+          "score": 0.05646522343158722
+        }
+      ],
+      "timestamp": "12:44 PM"
+    }
+  ],
+  "timestamp": 1780125300.7561138
+}

@@ -9,7 +9,7 @@ app_file: app.py
 pinned: false
 ---
 
-# PetroChat - Oil & Gas Domain RAG Assistant
+# PetroChat - Agentic Oil & Gas RAG Assistant
 
 
 PetroChat is a domain-specific Retrieval-Augmented Generation (RAG) system tailored for the Oil & Gas industry. It assists petroleum engineers and safety officers by providing precise, context-enforced, and cited answers to operational questions regarding drilling, production, well control, and process safety standards (such as OSHA guidelines, API recommended practices, and BLM onshore orders).
@@ -20,11 +20,12 @@ PetroChat is a domain-specific Retrieval-Augmented Generation (RAG) system tailo
 
 ## 🚀 Key Features
 
+* **Agentic Graph Workflow**: Powered by LangGraph, PetroChat uses an active state machine to reason about queries rather than a static pipeline.
+* **Intelligent Query Routing**: The agent decides if a query requires technical document retrieval or is a simple conversational greeting, saving compute and improving response time.
+* **Document Grader & Fallback**: The agent actively reads retrieved documents and grades their relevance. If local context is missing, it autonomously triggers a Web Search via DuckDuckGo/Tavily.
 * **Hybrid Document Search**: Integrates semantic vector search (ChromaDB + `all-MiniLM-L6-v2`) and keyword search (Rank-BM25) to achieve high recall and precision.
 * **Cross-Encoder Re-ranking**: Employs a Cross-Encoder model (`BAAI/bge-reranker-base`) to score and select the top 3 most relevant context chunks out of 30 initial candidates.
-* **Strict 100% Accuracy Guardrails**: Enforces a strict system prompt instructing the LLM to rely *solely* on the retrieved documents to guarantee 100% accuracy and extreme clarity, while safely rejecting out-of-domain technical questions.
-* **Automated Answer Verification**: Employs a self-reflection verification layer where the LLM evaluates its own drafted answer against the retrieved documents to proactively catch and rewrite hallucinations. If it fails to verify, it safely aborts with "I don't know."
-* **Online Research Fallback**: Integrates DuckDuckGo Web Search natively into the hybrid search pipeline to augment the local knowledge base with live internet search results.
+* **Self-Correction & Hallucination Guardrails**: The agent acts as its own critic, evaluating draft answers to ensure they are strictly grounded in context and properly resolve the user's question. It loops and retries if it hallucinates.
 * **Conversational Memory**: Automatically reformulates follow-up queries using the last 3 turns of chat history, maintaining topic continuity in conversational mode.
 * **Page-Level Standard Citations**: Automatically maps document filenames to their respective international engineering standards, generating citations in standard formatting after every factual claim (e.g. `[API RP 54 (Well Drilling and Servicing Safety), Page 56]`).
 * **Sleek Streamlit Interface**:
@@ -50,36 +51,22 @@ flowchart TD
         C --> E[BM25 Keyword Index]
     end
 
-    subgraph QueryReform["2. Conversational Memory"]
-        F[User Query] --> G{Chat History?}
-        G -- Yes --> H[LLM Query Reformulator]
-        G -- No --> I[Standalone Search Query]
-        H --> I
-    end
-
-    subgraph Retrieval["3. Hybrid Search & Reranking"]
-        I --> J[(Chroma Vector Search)]
-        I --> K[BM25 Keyword Search]
-        I --> L[Tavily Web Search API]
-        J --> M[Combined Documents]
-        K --> M
-        L --> M
-        M --> N[Cross-Encoder Reranker]
-        N --> O[Top 3 Context Chunks]
-    end
-
-    subgraph Generation["4. Guarded Generation & Verification"]
-        O --> P[LLM Draft Generator]
-        P --> Q{LLM Evaluator<br/>Verification Step}
-        Q -- [VALID] --> R[Final Answer]
-        Q -- [INVALID] --> S[Regenerate Draft with Feedback]
-        S --> T{LLM Evaluator 2}
-        T -- [VALID] --> R
-        T -- [INVALID] --> U[Fallback: 'I don't know']
+    subgraph AgenticGraph["2. Agentic RAG Workflow (LangGraph)"]
+        F[User Query] --> G{Router Node}
+        G -- Conversational --> H[Conversational Response]
+        G -- Technical --> I[Retrieve Documents]
+        I --> J{Document Grader Node}
+        J -- Relevant --> K[Generate Draft]
+        J -- Not Relevant --> L[Web Search Node]
+        L --> K
+        K --> M{Self-Correction Node}
+        M -- Hallucination/No Answer --> N[Inject Feedback]
+        N --> K
+        M -- Valid --> O[Final Answer]
     end
     
-    R --> V[Streamlit UI]
-    U --> V
+    H --> P[Streamlit UI]
+    O --> P
 ```
 
 ---
@@ -197,7 +184,8 @@ petrochat/
 │   └── [PDF Documents]      # Raw engineering standards and safety manuals
 ├── chroma_db/               # Persisted ChromaDB vector database directory
 ├── app.py                   # Streamlit web application interface and styling
-├── petrochat.py             # Core RAG pipeline, LLM generation, & CLI modes
+├── petrochat.py             # CLI mode entry points and overall logic
+├── agentic_graph.py         # LangGraph state machine (Router, Graders, Tools)
 ├── ingest.py                # Document parsing, chunking, and embedding
 ├── run_tests.py             # Automated test runner suite
 ├── requirements.txt         # Package dependencies

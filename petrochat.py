@@ -421,46 +421,28 @@ def run_rag_pipeline(query, retrieved_results):
         return f"[!] Error in LLM pipeline execution: {e}"
 
 
-# ── Single-Shot Mode (formerly retrieve.py) ──────────────────────────────────
+# ── Single-Shot Mode ─────────────────────────────────────────────────────────
 
 def single_query_mode(query, use_web_search=True):
     """
-    Runs a single query through the full RAG pipeline and prints the result.
-    Equivalent to the old 'python retrieve.py "query"' command.
+    Runs a single query through the Agentic RAG pipeline and prints the result.
     """
     # Load RAG resources
     db, bm25_retriever, reranker = load_rag_resources()
+    
+    from agentic_graph import build_graph
+    app = build_graph(db, bm25_retriever, reranker)
 
-    # Retrieve & Rerank — top 3 for single-shot mode
-    print("Searching knowledge base & re-ranking...")
-    reranked_results = retrieve_and_rerank(query, db, bm25_retriever, reranker, top_n=3, use_web_search=use_web_search)
+    initial_state = {
+        "original_query": query,
+        "chat_history": [],
+    }
 
-    if not reranked_results:
-        print("No relevant documents found.")
-        return
+    print("Invoking Agentic RAG graph...")
+    # Invoke the graph
+    result = app.invoke(initial_state)
 
-    print("\n--- Top 3 Results ---")
-    for i, (doc, rerank_score) in enumerate(reranked_results, 1):
-        text = doc.page_content.replace("\n", " ").strip()
-        if len(text) > 300:
-            text = text[:300] + "..."
-
-        source = doc.metadata.get("source", "Unknown")
-        page = doc.metadata.get("page", "Unknown")
-        initial_score = doc.metadata.get("initial_score")
-
-        if initial_score is not None:
-            sim_score = f"{1.0 - initial_score:.2f} (Vector)"
-        else:
-            sim_score = "BM25"
-
-        print(f"--- Result {i} (Rerank Score: {rerank_score:.2f} | Initial: {sim_score}) ---")
-        print(f"Source: {source} | Page: {page}")
-        print(f'"{text}"\n')
-
-    # LLM Answer Generation
-    print("Querying LLM pipeline...")
-    answer = run_rag_pipeline(query, reranked_results)
+    answer = result.get("generation", "No answer generated.")
 
     if answer:
         print("=" * 60)
@@ -479,35 +461,24 @@ def single_query_mode(query, use_web_search=True):
         print("=" * 60)
 
 
+
 # ── Interactive Chat Mode ────────────────────────────────────────────────────
 
 def chat_mode(use_web_search=True):
     """
-    Starts the interactive multi-turn chat session.
-    Equivalent to the old 'python petrochat.py' command.
+    Starts the interactive multi-turn chat session using Agentic RAG.
     """
     print("="*60)
-    print("           PETROCHAT - OIL & GAS DOMAIN RAG BOT")
+    print("           PETROCHAT - AGENTIC OIL & GAS RAG BOT")
     print("="*60)
-
-    # Load Groq API Key
-    api_key = os.getenv("GROQ_API_KEY") or os.getenv("GROK_API_KEY")
-    if not api_key:
-        print("[!] ERROR: Groq API Key not found in environment variables or .env file.")
-        print("    Please set GROQ_API_KEY in your .env file.")
-        sys.exit(1)
-
-    # Initialize Groq Client
-    try:
-        client = Groq(api_key=api_key)
-    except Exception as e:
-        print(f"[!] ERROR initializing Groq client: {e}")
-        sys.exit(1)
 
     # Load RAG resources
     db, bm25_retriever, reranker = load_rag_resources()
 
-    print("[+] Setup complete. Conversational session active.")
+    from agentic_graph import build_graph
+    app = build_graph(db, bm25_retriever, reranker)
+
+    print("[+] Agentic Setup complete. Conversational session active.")
     print("Type 'exit', 'quit', or 'q' to end the session.")
     print("Type 'clear' to reset conversation history.\n")
 
@@ -530,22 +501,20 @@ def chat_mode(use_web_search=True):
                 print("\nGoodbye!")
                 break
 
-            print("\n[+] Processing query...")
+            print("\n[+] Processing query via Agentic RAG...")
+            
+            initial_state = {
+                "original_query": query,
+                "chat_history": chat_history,
+            }
 
-            # Step 1: Query Reformulation if history exists
-            standalone = query
-            if chat_history:
-                print("    -> Reformulating query based on history...")
-                standalone = reformulate_query(client, query, chat_history)
-                print(f"    -> Standalone search query: '{standalone}'")
-
-            # Step 2: Retrieve & Re-rank
-            print("    -> Searching knowledge base & re-ranking...")
-            retrieved_docs = retrieve_and_rerank(standalone, db, bm25_retriever, reranker, top_n=3, use_web_search=use_web_search)
-
-            # Step 3: LLM generation
-            print("    -> Querying LLM...")
-            answer = get_answer(client, query, retrieved_docs, chat_history)
+            result = app.invoke(initial_state)
+            
+            answer = result.get("generation", "Error in generation.")
+            standalone = result.get("standalone_query", query)
+            retrieved_docs = result.get("documents", [])
+            # Fake rerank scores for the logger since graph doesn't track it currently
+            docs_with_scores = [(doc, 0.99) for doc in retrieved_docs]
 
             # Print response
             think_match = re.search(r"<think>(.*?)</think>", answer, re.DOTALL)
@@ -558,7 +527,7 @@ def chat_mode(use_web_search=True):
                 print(f"\nPetroChat:\n{answer}\n")
 
             # Log the session
-            log_interaction(query, standalone, retrieved_docs, answer)
+            log_interaction(query, standalone, docs_with_scores, answer)
 
             # Update Chat History
             chat_history.append({"role": "user", "content": query})
