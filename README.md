@@ -22,7 +22,9 @@ PetroChat is a domain-specific Retrieval-Augmented Generation (RAG) system tailo
 
 * **Hybrid Document Search**: Integrates semantic vector search (ChromaDB + `all-MiniLM-L6-v2`) and keyword search (Rank-BM25) to achieve high recall and precision.
 * **Cross-Encoder Re-ranking**: Employs a Cross-Encoder model (`BAAI/bge-reranker-base`) to score and select the top 3 most relevant context chunks out of 30 initial candidates.
-* **Strict Guardrails & Hallucination Prevention**: Enforces a strict system prompt instructing LLaMA-3.3-70B to rely solely on the retrieved documents. If the answer cannot be found in the context, it returns the standard message: `"I cannot answer this question based on the provided documents."`
+* **Strict 100% Accuracy Guardrails**: Enforces a strict system prompt instructing the LLM to rely *solely* on the retrieved documents to guarantee 100% accuracy and extreme clarity, while safely rejecting out-of-domain technical questions.
+* **Automated Answer Verification**: Employs a self-reflection verification layer where the LLM evaluates its own drafted answer against the retrieved documents to proactively catch and rewrite hallucinations. If it fails to verify, it safely aborts with "I don't know."
+* **Online Research Fallback**: Integrates DuckDuckGo Web Search natively into the hybrid search pipeline to augment the local knowledge base with live internet search results.
 * **Conversational Memory**: Automatically reformulates follow-up queries using the last 3 turns of chat history, maintaining topic continuity in conversational mode.
 * **Page-Level Standard Citations**: Automatically maps document filenames to their respective international engineering standards, generating citations in standard formatting after every factual claim (e.g. `[API RP 54 (Well Drilling and Servicing Safety), Page 56]`).
 * **Sleek Streamlit Interface**:

@@ -41,6 +41,7 @@ import json
 import glob
 import uuid
 import time
+import re
 
 # ─── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -149,6 +150,10 @@ def generate_pdf(messages):
         pdf.ln(2)
         pdf.set_text_color(40, 40, 40)
         pdf.set_font("helvetica", "", 10)
+        
+        # Remove think tags for PDF export
+        if role == "assistant":
+            content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL).strip()
         
         cleaned_content = clean_txt_for_pdf(content)
         pdf.multi_cell(0, 6, cleaned_content)
@@ -768,6 +773,7 @@ with st.sidebar:
 
     st.divider()
     st.caption("Actions")
+    use_web_search = st.toggle("🌐 Enable Web Search", value=True, help="Search the internet using DuckDuckGo to augment knowledge base")
     if st.session_state.messages:
         try:
             pdf_data = generate_pdf(st.session_state.messages)
@@ -852,7 +858,15 @@ else:
             if message["role"] == "user":
                 st.markdown(f'<div class="msg-bubble user-bubble">{message["content"]}</div><div class="msg-time">{time_str}</div>', unsafe_allow_html=True)
             else:
-                st.markdown(message["content"])
+                think_match = re.search(r"<think>(.*?)</think>", message["content"], re.DOTALL)
+                if think_match:
+                    think_text = think_match.group(1).strip()
+                    final_answer = message["content"].replace(think_match.group(0), "").strip()
+                    with st.expander("🧠 Thinking Process"):
+                        st.markdown(think_text)
+                    st.markdown(final_answer)
+                else:
+                    st.markdown(message["content"])
                 st.markdown(f'<div class="msg-time">{time_str}</div>', unsafe_allow_html=True)
                 
             if "sources" in message and message["sources"]:
@@ -872,6 +886,7 @@ if active_prompt:
             retrieved_docs = retrieve_and_rerank(
                 standalone, db, bm25_retriever, reranker,
                 k_chroma=retrieval_k, k_bm25=retrieval_k, top_n=llm_n,
+                use_web_search=use_web_search
             )
         except Exception as e:
             st.error(f"Retrieval error: {e}")
@@ -902,21 +917,29 @@ if active_prompt:
 
     # ── Typing animation ──
     with st.chat_message("assistant", avatar="💧"):
+        think_match = re.search(r"<think>(.*?)</think>", answer, re.DOTALL)
+        final_answer = answer
+        if think_match:
+            think_text = think_match.group(1).strip()
+            final_answer = answer.replace(think_match.group(0), "").strip()
+            with st.expander("🧠 Thinking Process"):
+                st.markdown(think_text)
+
         answer_placeholder = st.empty()
         displayed = ""
-        total_len = len(answer)
+        total_len = len(final_answer)
         
         target_steps = 35
         chunk_size = max(1, total_len // target_steps)
         delay = 0.025 # 25ms per frame
             
         for i in range(0, total_len, chunk_size):
-            displayed += answer[i:i+chunk_size]
+            displayed += final_answer[i:i+chunk_size]
             answer_placeholder.markdown(displayed + "▌")
             time.sleep(delay)
             
         # Final render without cursor
-        answer_placeholder.markdown(answer)
+        answer_placeholder.markdown(final_answer)
         st.markdown(f'<div class="msg-time">{now_str}</div>', unsafe_allow_html=True)
         
         if sources_info:

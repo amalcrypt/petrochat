@@ -4,6 +4,7 @@ import sys
 import pickle
 import warnings
 import datetime
+import re
 from dotenv import load_dotenv
 
 # Ignore warnings and disable ChromaDB telemetry
@@ -149,12 +150,29 @@ Standalone Question:"""
         print(f"[!] Warning: Query reformulation failed: {e}. Using original query.")
         return query
 
+# ── Web Search ───────────────────────────────────────────────────────────────
+
+def perform_web_search(query):
+    """
+    Performs a web search using DuckDuckGo to augment local knowledge.
+    """
+    try:
+        from langchain_community.tools import DuckDuckGoSearchRun
+        from langchain_core.documents import Document
+        search = DuckDuckGoSearchRun()
+        res = search.invoke(query)
+        if res:
+            return [Document(page_content=res, metadata={"source": "Web Search (DuckDuckGo)", "page": "N/A"})]
+    except Exception as e:
+        print(f"[!] Error in web search: {e}")
+    return []
+
 
 # ── Core RAG Pipeline ────────────────────────────────────────────────────────
 
-def retrieve_and_rerank(query, db, bm25_retriever, reranker, k_chroma=15, k_bm25=15, top_n=3):
+def retrieve_and_rerank(query, db, bm25_retriever, reranker, k_chroma=15, k_bm25=15, top_n=3, use_web_search=False):
     """
-    Performs hybrid search (Chroma vector search + BM25 keyword search)
+    Performs hybrid search (Chroma vector search + BM25 keyword search + optional Web Search)
     and re-ranks the combined results using a CrossEncoder.
     """
     # 1. Semantic Search
@@ -182,7 +200,14 @@ def retrieve_and_rerank(query, db, bm25_retriever, reranker, k_chroma=15, k_bm25
         doc.metadata["initial_score"] = initial_score
         unique_docs[doc.page_content] = doc
 
-    for doc in bm25_docs:
+    web_docs = []
+    if use_web_search:
+        try:
+            web_docs = perform_web_search(query)
+        except Exception as e:
+            print(f"[!] Web search exception: {e}")
+
+    for doc in bm25_docs + web_docs:
         if doc.page_content not in unique_docs:
             doc.metadata["initial_score"] = None
             unique_docs[doc.page_content] = doc
@@ -199,11 +224,63 @@ def retrieve_and_rerank(query, db, bm25_retriever, reranker, k_chroma=15, k_bm25
     reranked = list(zip(combined_docs, scores))
     reranked.sort(key=lambda x: x[1], reverse=True)
 
+    top_docs = reranked[:top_n]
+    
+    # Ensure web search results are not filtered out by the reranker
+    if web_docs:
+        for w_doc in web_docs:
+            if not any(d == w_doc for d, s in top_docs):
+                if len(top_docs) >= top_n:
+                    top_docs.pop() # Remove lowest scored local doc
+                original_score = next((s for d, s in reranked if d == w_doc), 0.99)
+                top_docs.insert(0, (w_doc, original_score))
+
     # Return top N results
-    return reranked[:top_n]
+    return top_docs
 
 
-def get_answer(client, query, retrieved_results, chat_history):
+def verify_answer(client, query, answer, retrieved_results):
+    """
+    Evaluates the generated answer against the retrieved context to detect hallucinations.
+    Returns (True, None) if valid, or (False, reason) if invalid.
+    """
+    context_str = ""
+    for idx, (doc, score) in enumerate(retrieved_results, 1):
+        source = doc.metadata.get("source", "Unknown")
+        page = doc.metadata.get("page", "Unknown")
+        context_str += f"--- Document Source: {source} | Page: {page} ---\n{doc.page_content}\n\n"
+        
+    prompt = f"""You are a strict evaluator for an Oil & Gas engineering assistant.
+Your task is to verify if the following generated answer is technically accurate and supported by the provided context (if applicable).
+Ensure there are no hallucinations or unsafe engineering recommendations.
+
+Query: {query}
+Generated Answer:
+{answer}
+
+Context:
+{context_str}
+
+Evaluate the answer. If it is safe, valid, and supported, output exactly [VALID].
+If it contains hallucinations or unsafe recommendations, output [INVALID] followed by the reason.
+"""
+    try:
+        completion = client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt}],
+            model=GROQ_MODEL,
+            temperature=0.0,
+            max_tokens=250
+        )
+        eval_result = completion.choices[0].message.content.strip()
+        if eval_result.startswith("[VALID]"):
+            return True, None
+        else:
+            return False, eval_result
+    except Exception as e:
+        return True, None
+
+
+def generate_draft_answer(client, query, retrieved_results, chat_history, feedback=None):
     """
     Queries the Groq LLM with retrieved context, enforcing strict compliance
     and hallucination prevention.
@@ -218,27 +295,24 @@ def get_answer(client, query, retrieved_results, chat_history):
     system_prompt = """
 You are PetroChat, an expert Oil & Gas engineer assistant specialized in drilling, production, well control, safety operations, and petroleum industry procedures.
 
-Your responsibility is to provide accurate, technical, and professional answers using STRICTLY the retrieved document context provided to you.
+Your responsibility is to provide 100% accurate, extremely clear, technical, and professional answers using STRICTLY the retrieved document context provided to you.
 
-Rules:
+Rules for 100% Accuracy and Clarity:
 
-1. Use ONLY information explicitly present in the retrieved context.
+1. Use ONLY information explicitly present in the retrieved context to guarantee 100% accuracy.
+   - EXCEPTION: For simple greetings (e.g., "hi", "hello"), reply conversationally and naturally without needing document context.
 
-2. Never use your own prior knowledge, assumptions, training data, or external information.
+2. Never use your own prior knowledge, assumptions, or external information for technical questions. Do not guess or infer missing details.
 
-3. Never infer, extrapolate, or guess missing details.
+3. Structure your answers to be exceptionally clear, well-organized, and easy to read.
 
-4. If the answer cannot be found clearly in the retrieved context, respond EXACTLY:
-
-"I cannot answer this question based on the provided documents."
-
-5. When answering:
+4. When answering:
    - Be concise but technically precise.
    - Use clear Oil & Gas terminology.
    - Organize long answers using bullet points when appropriate.
    - Explain procedures step by step if available.
 
-6. Cite the source using international engineering standards referencing format (author/organization, standard identifier, and page number) after every factual statement.
+5. Cite the source using international engineering standards referencing format (author/organization, standard identifier, and page number) after every factual statement.
    Do NOT use raw file names in your citations. Instead, map the document filenames in the retrieved context to their respective international standard titles:
    - api_rp54_drilling_safety.pdf -> API RP 54 (Well Drilling and Servicing Safety)
    - osha_3843_tank_gauging.pdf -> OSHA 3843 (Safe Tank Gauging)
@@ -248,23 +322,27 @@ Rules:
    - osha_steps_citations.pdf -> OSHA Steps Alliance Citation Guide
    For any other PDF document not listed above, use the filename capitalized (without '.pdf' extension) as the title in the citation.
 
+   If the information comes from a Web Search, do not generate a citation block or disclaimer. Simply state the facts naturally. Do NOT output disclaimers like "[No specific document citation is applicable here...]".
+
    Example Citation:
    [API RP 54, Page 12] or [OSHA 3843, Page 5]
 
-7. Do not mention:
+6. Do not mention:
    - "Based on the context"
    - "The retrieved documents say"
    - "The provided information"
 
 Present the answer naturally as an expert engineer.
 
-8. If multiple documents provide related information:
+7. If multiple documents provide related information:
    - Combine them logically.
    - Preserve citations for each statement.
 
-9. Safety-related questions require maximum caution:
+8. Safety-related questions require maximum caution:
    - Do not invent procedures.
    - Do not create operational recommendations if not present in documents.
+
+9. ALWAYS think step by step before answering. You MUST enclose your entire thought process within <think> and </think> tags. Place this block at the very beginning of your response. Only output your final answer after the </think> tag.
 """
 
     messages = [{"role": "system", "content": system_prompt}]
@@ -276,6 +354,8 @@ Present the answer naturally as an expert engineer.
 
     # Add user query with context
     user_content = f"Context:\n{context_str}\n\nQuestion: {query}"
+    if feedback:
+        user_content += f"\n\n[SYSTEM WARNING]: Your previous attempt failed verification. Reason:\n{feedback}\nPlease correct your answer."
     messages.append({"role": "user", "content": user_content})
 
     try:
@@ -283,11 +363,37 @@ Present the answer naturally as an expert engineer.
             messages=messages,
             model=GROQ_MODEL,
             temperature=0.0,
-            max_tokens=1000
+            max_tokens=4096
         )
         return completion.choices[0].message.content.strip()
     except Exception as e:
         return f"[!] Error generating response from LLM: {e}"
+
+
+def get_answer(client, query, retrieved_results, chat_history):
+    """
+    Generates an answer, verifies it, and regenerates if it fails verification.
+    """
+    # First attempt
+    draft_answer = generate_draft_answer(client, query, retrieved_results, chat_history)
+    
+    # Verification
+    is_valid, feedback = verify_answer(client, query, draft_answer, retrieved_results)
+    
+    if is_valid:
+        return draft_answer
+        
+    # Second attempt with feedback
+    print(f"    -> [!] Verification failed. Regenerating... Reason: {feedback}")
+    second_attempt = generate_draft_answer(client, query, retrieved_results, chat_history, feedback=feedback)
+    
+    # Final verification
+    is_valid_2, feedback_2 = verify_answer(client, query, second_attempt, retrieved_results)
+    
+    if is_valid_2:
+        return second_attempt
+    else:
+        return "I don't know."
 
 
 def run_rag_pipeline(query, retrieved_results):
@@ -308,7 +414,7 @@ def run_rag_pipeline(query, retrieved_results):
 
 # ── Single-Shot Mode (formerly retrieve.py) ──────────────────────────────────
 
-def single_query_mode(query):
+def single_query_mode(query, use_web_search=True):
     """
     Runs a single query through the full RAG pipeline and prints the result.
     Equivalent to the old 'python retrieve.py "query"' command.
@@ -318,7 +424,7 @@ def single_query_mode(query):
 
     # Retrieve & Rerank — top 3 for single-shot mode
     print("Searching knowledge base & re-ranking...")
-    reranked_results = retrieve_and_rerank(query, db, bm25_retriever, reranker, top_n=3)
+    reranked_results = retrieve_and_rerank(query, db, bm25_retriever, reranker, top_n=3, use_web_search=use_web_search)
 
     if not reranked_results:
         print("No relevant documents found.")
@@ -349,14 +455,24 @@ def single_query_mode(query):
 
     if answer:
         print("=" * 60)
-        print("PETROCHAT ANSWER:")
-        print(answer)
+        think_match = re.search(r"<think>(.*?)</think>", answer, re.DOTALL)
+        if think_match:
+            think_text = think_match.group(1).strip()
+            final_answer = answer.replace(think_match.group(0), "").strip()
+            print("THINKING PROCESS:")
+            print(think_text)
+            print("-" * 60)
+            print("PETROCHAT ANSWER:")
+            print(final_answer)
+        else:
+            print("PETROCHAT ANSWER:")
+            print(answer)
         print("=" * 60)
 
 
 # ── Interactive Chat Mode ────────────────────────────────────────────────────
 
-def chat_mode():
+def chat_mode(use_web_search=True):
     """
     Starts the interactive multi-turn chat session.
     Equivalent to the old 'python petrochat.py' command.
@@ -416,14 +532,21 @@ def chat_mode():
 
             # Step 2: Retrieve & Re-rank
             print("    -> Searching knowledge base & re-ranking...")
-            retrieved_docs = retrieve_and_rerank(standalone, db, bm25_retriever, reranker, top_n=3)
+            retrieved_docs = retrieve_and_rerank(standalone, db, bm25_retriever, reranker, top_n=3, use_web_search=use_web_search)
 
             # Step 3: LLM generation
             print("    -> Querying LLM...")
             answer = get_answer(client, query, retrieved_docs, chat_history)
 
             # Print response
-            print(f"\nPetroChat:\n{answer}\n")
+            think_match = re.search(r"<think>(.*?)</think>", answer, re.DOTALL)
+            if think_match:
+                think_text = think_match.group(1).strip()
+                final_answer = answer.replace(think_match.group(0), "").strip()
+                print(f"\n[Thinking Process]\n{think_text}\n")
+                print(f"PetroChat:\n{final_answer}\n")
+            else:
+                print(f"\nPetroChat:\n{answer}\n")
 
             # Log the session
             log_interaction(query, standalone, retrieved_docs, answer)
@@ -458,12 +581,18 @@ def main():
         default=None,
         help="Run a single query and exit (retrieve + answer mode)"
     )
+    parser.add_argument(
+        "--no-web",
+        action="store_false",
+        dest="web",
+        help="Disable online web search fallback via DuckDuckGo"
+    )
     args = parser.parse_args()
 
     if args.query:
-        single_query_mode(args.query)
+        single_query_mode(args.query, use_web_search=args.web)
     else:
-        chat_mode()
+        chat_mode(use_web_search=args.web)
 
 
 if __name__ == "__main__":
