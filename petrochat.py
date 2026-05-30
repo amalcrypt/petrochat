@@ -154,15 +154,24 @@ Standalone Question:"""
 
 def perform_web_search(query):
     """
-    Performs a web search using DuckDuckGo to augment local knowledge.
+    Performs a web search using Tavily API to augment local knowledge.
     """
+    api_key = os.getenv("TAVILY_API_KEY")
+    if not api_key:
+        print("[!] TAVILY_API_KEY not found in environment variables. Skipping web search.")
+        return []
+
     try:
-        from langchain_community.tools import DuckDuckGoSearchRun
+        from langchain_community.tools.tavily_search import TavilySearchResults
         from langchain_core.documents import Document
-        search = DuckDuckGoSearchRun()
-        res = search.invoke(query)
-        if res:
-            return [Document(page_content=res, metadata={"source": "Web Search (DuckDuckGo)", "page": "N/A"})]
+        
+        search = TavilySearchResults(max_results=1, tavily_api_key=api_key)
+        res = search.invoke({"query": query})
+        
+        if res and isinstance(res, list) and len(res) > 0:
+            content = res[0].get("content", "")
+            if content:
+                return [Document(page_content=content, metadata={"source": "Web Search (Tavily)", "page": "N/A"})]
     except Exception as e:
         print(f"[!] Error in web search: {e}")
     return []
