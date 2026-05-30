@@ -43,38 +43,43 @@ The diagram below details the ingestion, retrieval, reranking, and generation pi
 
 ```mermaid
 flowchart TD
-    subgraph Ingestion["1. Ingestion Pipeline (ingest.py)"]
-        A[Raw PDFs in data/] --> B(pdfplumber / PyPDF2 Extraction)
-        B --> C[Page-level Text Documents]
-        C --> D(RecursiveCharacterTextSplitter<br/>chunk_size=1000, overlap=200)
-        D --> E[Text Chunks]
-        E --> F[(ChromaDB Vector Store<br/>all-MiniLM-L6-v2)]
-        E --> G[BM25 Index<br/>bm25_retriever.pkl]
+    subgraph Ingestion["1. Ingestion Pipeline"]
+        A[Raw PDFs] --> B(pdfplumber Extraction)
+        B --> C(TextSplitter chunking)
+        C --> D[(ChromaDB Vector Store)]
+        C --> E[BM25 Keyword Index]
     end
 
     subgraph QueryReform["2. Conversational Memory"]
-        H[User Query] --> I{Chat History exists?}
-        I -- Yes --> J[LLaMA-3.3-70B Query Reformulator]
-        I -- No --> K[Standalone Search Query]
-        J -->|Reformulate| K
+        F[User Query] --> G{Chat History?}
+        G -- Yes --> H[LLM Query Reformulator]
+        G -- No --> I[Standalone Search Query]
+        H --> I
     end
 
     subgraph Retrieval["3. Hybrid Search & Reranking"]
-        K --> L[(Chroma Vector Search<br/>k=15)]
-        K --> M[BM25 Keyword Search<br/>k=15]
-        L --> N[Deduplicated & Combined Docs]
-        M --> N
-        N --> O[Cross-Encoder Reranker<br/>bge-reranker-base]
-        O --> P[Top 3 Reranked Context Chunks]
+        I --> J[(Chroma Vector Search)]
+        I --> K[BM25 Keyword Search]
+        I --> L[Tavily Web Search API]
+        J --> M[Combined Documents]
+        K --> M
+        L --> M
+        M --> N[Cross-Encoder Reranker]
+        N --> O[Top 3 Context Chunks]
     end
 
-    subgraph Generation["4. Guarded Response Generation"]
-        P --> Q[LLaMA-3.3-70B Generator]
-        R[System Prompt<br/>- Strict context constraints<br/>- Citation mapping rules] --> Q
-        Q --> S[Cited Response Output]
+    subgraph Generation["4. Guarded Generation & Verification"]
+        O --> P[LLM Draft Generator]
+        P --> Q{LLM Evaluator<br/>Verification Step}
+        Q -- [VALID] --> R[Final Answer]
+        Q -- [INVALID] --> S[Regenerate Draft with Feedback]
+        S --> T{LLM Evaluator 2}
+        T -- [VALID] --> R
+        T -- [INVALID] --> U[Fallback: 'I don't know']
     end
     
-    S --> T[Streamlit Web UI / CLI Output]
+    R --> V[Streamlit UI]
+    U --> V
 ```
 
 ---
