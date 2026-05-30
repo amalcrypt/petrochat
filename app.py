@@ -25,7 +25,7 @@ import streamlit as st
 from dotenv import load_dotenv
 load_dotenv()
 from groq import Groq
-from ui_components import doc_list_html, chunk_cards_html
+from ui_components import doc_list_html
 from petrochat import (
     load_rag_resources,
     log_interaction,
@@ -867,15 +867,32 @@ else:
                 else:
                     st.markdown(message["content"])
                 st.markdown(f'<div class="msg-time">{time_str}</div>', unsafe_allow_html=True)
-                
-            if "sources" in message and message["sources"]:
-                with st.expander("▼ Retrieved Context"):
-                    st.markdown(chunk_cards_html(message["sources"]), unsafe_allow_html=True)
 
 # ─── Process RAG & Streaming for Active Prompt ────────────────────────────────
 if active_prompt:
     # ── Run Agentic Graph ──
-    with st.spinner("Agent planning and retrieving..."):
+    import sys
+    with st.status("🧠 Agent thinking...", expanded=True) as status:
+        log_container = st.empty()
+        
+        class LogCapturer:
+            def __init__(self, original_stdout):
+                self.original_stdout = original_stdout
+                self.logs = []
+                
+            def write(self, text):
+                self.original_stdout.write(text)
+                text_stripped = text.strip()
+                if text_stripped and ("->" in text_stripped or "Step" in text_stripped or "Error" in text_stripped):
+                    self.logs.append(text_stripped)
+                    log_container.markdown("```text\n" + "\n".join(self.logs) + "\n```")
+                    
+            def flush(self):
+                self.original_stdout.flush()
+
+        old_stdout = sys.stdout
+        sys.stdout = LogCapturer(old_stdout)
+
         history_subset = [{"role": m["role"], "content": m["content"]} for m in st.session_state.messages[:-1]]
         
         initial_state = {
@@ -889,13 +906,14 @@ if active_prompt:
             standalone = result.get("standalone_query", active_prompt)
             retrieved_docs = result.get("documents", [])
             
-            # The graph doesn't currently attach rerank scores in its output,
-            # so we'll just fake it as 0.99 for the UI source cards.
             docs_with_scores = [(doc, 0.99) for doc in retrieved_docs]
-            
+            status.update(label="Agent finished thinking!", state="complete", expanded=False)
         except Exception as e:
+            sys.stdout = old_stdout
             st.error(f"Agent execution error: {e}")
             st.stop()
+        finally:
+            sys.stdout = old_stdout
             
         sources_info = [
             {
@@ -932,13 +950,8 @@ if active_prompt:
             answer_placeholder.markdown(displayed + "▌")
             time.sleep(delay)
             
-        # Final render without cursor
         answer_placeholder.markdown(final_answer)
         st.markdown(f'<div class="msg-time">{now_str}</div>', unsafe_allow_html=True)
-        
-        if sources_info:
-            with st.expander("▼ Retrieved Context"):
-                st.markdown(chunk_cards_html(sources_info), unsafe_allow_html=True)
 
     st.session_state.messages.append({"role": "assistant", "content": answer, "sources": sources_info, "timestamp": now_str})
     if sid in st.session_state.sessions:

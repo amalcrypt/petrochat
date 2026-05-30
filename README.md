@@ -22,13 +22,13 @@ PetroChat is a domain-specific Retrieval-Augmented Generation (RAG) system tailo
 
 * **Plan-and-Execute Agent Workflow**: Powered by LangGraph, PetroChat uses an active state machine to reason about queries rather than a static pipeline.
 * **Intelligent Query Routing**: The agent decides if a query requires technical document retrieval or is a simple conversational greeting, saving compute and improving response time.
-* **Planner Agent & Query Decomposition**: For complex or multi-part questions, the agent breaks the prompt down into a series of smaller, independent sub-queries to execute iteratively.
-* **Multi-Tool Selection**: The agent dynamically selects the best search tool for each specific sub-query (Semantic Vector Search, BM25 Keyword Search, or Web Search).
-* **Retrieval Reflection**: After searching, the agent actively reads the retrieved documents and grades their relevance. If local context is missing for a step, it autonomously triggers a Web Search fallback to fill the gap.
-* **Source Prioritization & Synthesis**: When combining answers from multiple tools, the agent explicitly prioritizes official internal Standards (API, OSHA, BLM, Handbooks) as the ground truth over web search results.
+* **Planner Agent & Query Decomposition**: For complex or comparative questions, the agent forcefully breaks the prompt down into a series of smaller, independent sub-queries (e.g. Step 1 -> Retrieve X, Step 2 -> Retrieve Y, Step 3 -> Compare) to execute iteratively.
+* **Multi-Tool Selection**: The agent dynamically selects the best search tool for each specific sub-query, explicitly choosing between Vector (Chroma), BM25, Uploaded PDFs, or Web Search.
+* **Advanced Retrieval Reflection**: After searching, the agent reads the retrieved documents and performs active reasoning: *Did I collect enough evidence? What information is missing?* If local context is missing, it autonomously generates a highly-targeted `missing_query` and triggers a Web Search fallback.
+* **Strict Source Prioritization Hierarchy**: When combining answers, the agent explicitly prioritizes official internal standards as the ground truth over web search results using a strict weighted hierarchy (`ABB Handbook > Uploaded Docs > API Standards > OSHA > Web Search`).
 * **Hybrid Document Search**: Integrates semantic vector search (ChromaDB + `all-MiniLM-L6-v2`) and keyword search (Rank-BM25) to achieve high recall and precision.
 * **Agentic Routing over Re-ranking**: Eliminates the need for slow, heavy Cross-Encoder reranking models by dynamically routing queries to targeted databases and leveraging native LLM reasoning to extract relevant context.
-* **Self-Correction & Hallucination Guardrails**: The agent acts as its own critic, evaluating draft answers to ensure they are strictly grounded in context and properly resolve the user's question. It loops and retries if it hallucinates.
+* **Self-Correction & Infinite Loop Prevention**: The agent acts as its own critic, evaluating draft answers to ensure they are strictly grounded. It loops and retries if it hallucinates, but incorporates a strict `MAX_RETRIES` ceiling to prevent infinite loops on impossible queries.
 * **Conversational Memory**: Automatically reformulates follow-up queries using the last 3 turns of chat history, maintaining topic continuity in conversational mode.
 * **Page-Level Standard Citations**: Automatically maps document filenames to their respective international engineering standards, generating citations in standard formatting after every factual claim (e.g. `[API RP 54 (Well Drilling and Servicing Safety), Page 56]`).
 * **Sleek Streamlit Interface**:

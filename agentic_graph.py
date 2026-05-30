@@ -36,6 +36,8 @@ class GraphState(TypedDict):
     generation: str
     generation_feedback: str
     iterations: int
+    planner_retries: int
+    missing_query: str
 
 # --- Node Functions ---
 
@@ -138,6 +140,10 @@ Standalone Question:"""
         system = """You are a Planner Agent for an Oil & Gas expert system. 
 Your task is to take a complex user query and decompose it into a list of simpler, independent sub-queries. 
 If the user's query is simple, just return it as a single item in the list.
+For comparative or complex queries, you MUST explicitly create multiple steps. For example, if asked to compare OSHA and API offshore rules:
+- Step 1: Retrieve OSHA offshore rules
+- Step 2: Retrieve API offshore rules
+- Step 3: Compare OSHA and API rules
 You must respond with a JSON object containing a single key "sub_queries" whose value is a list of strings."""
 
         res = self._structured_call(system, question)
@@ -155,8 +161,9 @@ You must respond with a JSON object containing a single key "sub_queries" whose 
             "plan": plan, 
             "current_step_index": 0,
             "completed_steps": [],
-            "gathered_context": [],
-            "iterations": 0
+            "gathered_context": state.get("gathered_context", []),
+            "iterations": 0,
+            "planner_retries": state.get("planner_retries", 0)
         }
 
     def check_plan_complete(self, state: GraphState) -> Literal["select_tool", "generate"]:
@@ -173,8 +180,8 @@ You must respond with a JSON object containing a single key "sub_queries" whose 
         print(f"    -> [MULTI-TOOL] Selecting tool for sub-query: '{current_query}'")
         
         system = """You are a Tool Selector. For a given query, decide which tool is best:
-- "vector": For semantic meaning, concepts, operations, and general Oil & Gas questions.
-- "bm25": For strict keyword matching, specific standard numbers (e.g. "API RP 53", "OSHA 3843").
+- "vector": For semantic meaning, concepts, operations, and general Oil & Gas questions (Chroma / Uploaded PDFs).
+- "bm25": For strict keyword matching, specific standard numbers (e.g. "API RP 53", "OSHA 3843") (BM25 / Uploaded PDFs).
 - "web": For real-time, external, or non-technical knowledge.
 You must respond with a JSON object containing a single key "tool" with value "vector", "bm25", or "web"."""
         
@@ -229,9 +236,9 @@ You must respond with a JSON object containing a single key "tool" with value "v
         return {"gathered_context": context}
 
     def execute_web(self, state: GraphState) -> GraphState:
-        print("    -> [EXECUTE] Fetching from Web...")
         idx = state["current_step_index"]
-        query = state["plan"][idx]
+        query = state.get("missing_query") or state["plan"][idx]
+        print(f"    -> [EXECUTE] Fetching from Web for query: '{query}'...")
         context = state.get("gathered_context", [])
         
         web_docs = perform_web_search(query)
@@ -249,12 +256,18 @@ You must respond with a JSON object containing a single key "tool" with value "v
         
         context_str = "\n".join([d.page_content[:500] for d in context])
         
-        system = """You are a Grader. Read the provided context and determine if it fully resolves the user query.
-If yes, score "yes". If the context is empty or missing key information, score "no".
-Respond with a JSON object containing a single key "binary_score" with value "yes" or "no"."""
+        system = """You are a Grader. Evaluate the provided context against the user query by considering:
+1. Did I answer every part of the question?
+2. Did I collect enough evidence?
+3. What information is missing?
+
+If information is missing, output binary_score "no" and provide a "missing_query" that specifically asks for the missing parts. If sufficient, output binary_score "yes" and "missing_query" as "".
+Respond with a JSON object containing keys "binary_score" ("yes" or "no") and "missing_query" (string)."""
         
         prompt = f"Query: {query}\n\nContext: {context_str}"
-        score = self._structured_call(system, prompt).get("binary_score", "no")
+        res = self._structured_call(system, prompt)
+        score = res.get("binary_score", "no")
+        missing_query = res.get("missing_query", query)
         
         if score == "yes" or state.get("current_tool") == "web":
             # Move to next step (If we already tried web, give up and move on to prevent loops)
@@ -267,12 +280,13 @@ Respond with a JSON object containing a single key "binary_score" with value "ye
             return {
                 "completed_steps": completed,
                 "current_step_index": idx + 1,
-                "forced_fallback": False
+                "forced_fallback": False,
+                "missing_query": ""
             }
         else:
-            print("    -> [REFLECTION] Context insufficient. Forcing Web Search fallback.")
+            print(f"    -> [REFLECTION] Context insufficient. Forcing Web Search for missing info: '{missing_query}'")
             # We overwrite current_tool to web so the router pushes it there next iteration
-            return {"current_tool": "web", "forced_fallback": True}
+            return {"current_tool": "web", "forced_fallback": True, "missing_query": missing_query}
 
     def route_after_reflection(self, state: GraphState) -> Literal["select_tool", "generate", "execute_web"]:
         if state.get("forced_fallback"):
@@ -297,11 +311,15 @@ Respond with a JSON object containing a single key "binary_score" with value "ye
         # Prioritize local documents (API, OSHA, BLM) over web search
         def score_doc(doc):
             source = doc.metadata.get("source", "").lower()
-            if "api" in source or "osha" in source or "blm" in source or "handbook" in source:
-                return 2
+            if "handbook" in source:
+                return 4
             elif "web search" in source:
                 return 0
-            return 1
+            elif "api" in source:
+                return 2
+            elif "osha" in source:
+                return 1
+            return 3
             
         sorted_docs = sorted(documents, key=score_doc, reverse=True)
         
@@ -370,6 +388,11 @@ Rules for 100% Accuracy and Clarity:
         if iterations >= 2:
             print("    -> [DECISION] Reached max iterations (2), accepting generation.")
             return "useful"
+            
+        retries = state.get("planner_retries", 0)
+        if retries >= 3:
+            print("    -> [DECISION] Reached MAX_RETRIES (3) for Planner loops. Returning best available response.")
+            return "useful"
 
         # 1. Check Hallucinations
         context_str = ""
@@ -404,6 +427,9 @@ You must respond with a JSON object containing a single key "binary_score" with 
 
     def inject_feedback(self, state: GraphState) -> GraphState:
         return {"generation_feedback": getattr(self, "current_feedback", "Generation failed hallucination check.")}
+        
+    def record_planner_retry(self, state: GraphState) -> GraphState:
+        return {"planner_retries": state.get("planner_retries", 0) + 1}
 
 
 def build_graph(db, bm25):
@@ -422,6 +448,7 @@ def build_graph(db, bm25):
     workflow.add_node("generate", agent.generate)
     workflow.add_node("conversational", agent.conversational_response)
     workflow.add_node("inject_feedback", agent.inject_feedback)
+    workflow.add_node("record_planner_retry", agent.record_planner_retry)
     
     # Edge logic
     workflow.set_entry_point("reformulate")
@@ -467,10 +494,11 @@ def build_graph(db, bm25):
         {
             "useful": END,
             "not_supported": "inject_feedback",
-            "not_useful": "plan_query" # Loop back to planner if entirely not useful
+            "not_useful": "record_planner_retry"
         }
     )
     
+    workflow.add_edge("record_planner_retry", "plan_query")
     workflow.add_edge("inject_feedback", "generate")
     workflow.add_edge("conversational", END)
     
