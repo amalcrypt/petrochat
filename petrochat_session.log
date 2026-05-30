@@ -869,3 +869,31 @@ The current price of oil as of May 29, 2026, is $94.44 per barrel.
 [!] Error generating response from LLM: Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01ks1z4kdkfvhsme9zfa6www3k` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99942, Requested 1279. Please try again in 17m34.944s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}
 
 --------------------------------------------------------------------------------
+
+## Interaction at 2026-05-30T13:08:24.467219
+* **User Query**: hi
+* **Standalone Query**: Same as original query
+
+* **Retrieved Context Chunks (Top Reranked)**:
+  1. [Score: 0.9984] Web Search (Tavily) (Page N/A): "Vocabulary.com  # hi  Hi is a common greeting, more casual than "hello." When you walk down the street in a small town, it might seem like everyone you pass says "hi."  The word hi is a good, nearly a..."
+  2. [Score: 0.0652] osha_steps_citations.pdf (Page 1): "contractors, industry associations, and educators with  Personal Protective Equipment the purpose of promoting a standardized safety [1910.132(a)] orientation for workers in the U.S. Onshore E&P Indu..."
+  3. [Score: 0.0565] osha_3918_psm_refinery.pdf (Page 40): "U.S. Department of Labor For more information: Occupational Safety and Health Administration www.osha.gov (800) 321-OSHA (6742)..."
+
+* **Final Answer**:
+[!] Error generating response from LLM: Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01ks1z4kdkfvhsme9zfa6www3k` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99689, Requested 5420. Please try again in 1h13m34.176s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}
+
+--------------------------------------------------------------------------------
+
+## Interaction at 2026-05-30T13:08:53.175772
+* **User Query**: hi
+* **Standalone Query**: Same as original query
+
+* **Retrieved Context Chunks (Top Reranked)**:
+  1. [Score: 0.9984] Web Search (Tavily) (Page N/A): "Vocabulary.com  # hi  Hi is a common greeting, more casual than "hello." When you walk down the street in a small town, it might seem like everyone you pass says "hi."  The word hi is a good, nearly a..."
+  2. [Score: 0.0652] osha_steps_citations.pdf (Page 1): "contractors, industry associations, and educators with  Personal Protective Equipment the purpose of promoting a standardized safety [1910.132(a)] orientation for workers in the U.S. Onshore E&P Indu..."
+  3. [Score: 0.0565] osha_3918_psm_refinery.pdf (Page 40): "U.S. Department of Labor For more information: Occupational Safety and Health Administration www.osha.gov (800) 321-OSHA (6742)..."
+
+* **Final Answer**:
+[!] Error generating response from LLM: Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01ks1z4kdkfvhsme9zfa6www3k` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99656, Requested 1174. Please try again in 11m57.12s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}
+
+--------------------------------------------------------------------------------

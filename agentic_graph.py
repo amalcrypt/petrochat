@@ -1,7 +1,6 @@
 import os
 import json
-import re
-from typing import List, Dict, Any, Literal
+from typing import List, Dict, Literal
 from typing_extensions import TypedDict
 
 from langchain_core.documents import Document
@@ -10,7 +9,7 @@ from groq import Groq
 from langgraph.graph import END, StateGraph
 
 # Import needed functions from petrochat.py
-from petrochat import retrieve_and_rerank, perform_web_search, load_rag_resources
+from petrochat import perform_web_search, load_rag_resources
 
 GROQ_MODEL = "llama-3.1-8b-instant"
 
@@ -41,10 +40,9 @@ class GraphState(TypedDict):
 # --- Node Functions ---
 
 class PetroAgent:
-    def __init__(self, db, bm25, reranker):
+    def __init__(self, db, bm25):
         self.db = db
         self.bm25 = bm25
-        self.reranker = reranker
         
         api_key = os.getenv("GROQ_API_KEY") or os.getenv("GROK_API_KEY") or os.getenv("XAI_API_KEY")
         if not api_key:
@@ -408,8 +406,8 @@ You must respond with a JSON object containing a single key "binary_score" with 
         return {"generation_feedback": getattr(self, "current_feedback", "Generation failed hallucination check.")}
 
 
-def build_graph(db, bm25, reranker):
-    agent = PetroAgent(db, bm25, reranker)
+def build_graph(db, bm25):
+    agent = PetroAgent(db, bm25)
     
     workflow = StateGraph(GraphState)
     

@@ -28,15 +28,13 @@ from groq import Groq
 from ui_components import doc_list_html, chunk_cards_html
 from petrochat import (
     load_rag_resources,
-    retrieve_and_rerank,
-    reformulate_query,
-    get_answer,
     log_interaction,
     CHROMA_DIR,
     COLLECTION_NAME,
     BM25_PATH,
     GROQ_MODEL,
 )
+from agentic_graph import build_graph
 import json
 import glob
 import uuid
@@ -454,15 +452,16 @@ def unanswerable_card(text: str) -> str:
 @st.cache_resource(show_spinner=False)
 def get_rag_resources():
     try:
-        db, bm25, reranker = load_rag_resources(raise_on_missing=True)
-        return db, bm25, reranker, None
+        db, bm25 = load_rag_resources(raise_on_missing=True)
+        app_graph = build_graph(db, bm25)
+        return db, bm25, app_graph, None
     except FileNotFoundError as e:
         return None, None, None, str(e)
     except Exception as e:
         return None, None, None, f"{e}\\n{traceback.format_exc()}"
 
 with st.spinner("Loading AI Models & Knowledge Base..."):
-    db, bm25_retriever, reranker, init_error = get_rag_resources()
+    db, bm25_retriever, app_graph, init_error = get_rag_resources()
 
 if init_error:
     import glob
@@ -875,28 +874,29 @@ else:
 
 # ─── Process RAG & Streaming for Active Prompt ────────────────────────────────
 if active_prompt:
-    # ── Run RAG ──
-    with st.spinner(""):
+    # ── Run Agentic Graph ──
+    with st.spinner("Agent planning and retrieving..."):
         history_subset = [{"role": m["role"], "content": m["content"]} for m in st.session_state.messages[:-1]]
-        standalone = active_prompt
-        if history_subset:
-            standalone = reformulate_query(groq_client, active_prompt, history_subset[-6:])
+        
+        initial_state = {
+            "original_query": active_prompt,
+            "chat_history": history_subset,
+        }
         
         try:
-            retrieved_docs = retrieve_and_rerank(
-                standalone, db, bm25_retriever, reranker,
-                k_chroma=retrieval_k, k_bm25=retrieval_k, top_n=llm_n,
-                use_web_search=use_web_search
-            )
+            result = app_graph.invoke(initial_state)
+            answer = result.get("generation", "No answer generated.")
+            standalone = result.get("standalone_query", active_prompt)
+            retrieved_docs = result.get("documents", [])
+            
+            # The graph doesn't currently attach rerank scores in its output,
+            # so we'll just fake it as 0.99 for the UI source cards.
+            docs_with_scores = [(doc, 0.99) for doc in retrieved_docs]
+            
         except Exception as e:
-            st.error(f"Retrieval error: {e}")
+            st.error(f"Agent execution error: {e}")
             st.stop()
             
-        if not retrieved_docs:
-            no_ctx = "I cannot answer this question based on the provided documents. No relevant passages were found in the knowledge base."
-            st.session_state.messages.append({"role": "assistant", "content": no_ctx, "sources": []})
-            st.rerun()
-
         sources_info = [
             {
                 "source":  doc.metadata.get("source", "Unknown"),
@@ -904,16 +904,10 @@ if active_prompt:
                 "content": doc.page_content.strip(),
                 "score":   float(score),
             }
-            for doc, score in retrieved_docs
+            for doc, score in docs_with_scores
         ]
 
-        try:
-            answer = get_answer(groq_client, active_prompt, retrieved_docs, history_subset[-6:])
-        except Exception as e:
-            st.error(f"LLM error: {e}")
-            st.stop()
-
-        log_interaction(active_prompt, standalone, retrieved_docs, answer)
+        log_interaction(active_prompt, standalone, docs_with_scores, answer)
 
     # ── Typing animation ──
     with st.chat_message("assistant", avatar="💧"):

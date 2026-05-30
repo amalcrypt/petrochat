@@ -14,11 +14,8 @@ os.environ["TRANSFORMERS_VERBOSITY"] = "error"
 load_dotenv()
 
 # Import PetroChat pipeline
-from petrochat import (
-    load_rag_resources,
-    retrieve_and_rerank,
-    get_answer
-)
+from petrochat import load_rag_resources
+from agentic_graph import build_graph
 
 # Output evaluation report path
 EVAL_REPORT_PATH = "evaluation_report.md"
@@ -129,7 +126,8 @@ def main():
     # Load RAG Resources
     print("[+] Loading local embeddings and connecting to database...")
     try:
-        db, bm25, reranker = load_rag_resources(raise_on_missing=True)
+        db, bm25 = load_rag_resources(raise_on_missing=True)
+        app_graph = build_graph(db, bm25)
     except FileNotFoundError as e:
         print(f"[!] Database error: {e}")
         print("    Please run ingestion first using: python ingest.py")
@@ -151,12 +149,14 @@ def main():
 
         print(f"--- Running Case {qid}/{total_cases} ({q_type}): '{query}' ---")
 
-        # Step 1: Retrieve and Rerank
-        retrieved_results = retrieve_and_rerank(query, db, bm25, reranker, top_n=3)
-
-        # Step 2: Generate Answer
+        # Step 1 & 2: Agentic Execution (Retrieve & Generate)
         start_time = time.time()
-        answer = get_answer(client, query, retrieved_results, [])
+        initial_state = {
+            "original_query": query,
+            "chat_history": []
+        }
+        result = app_graph.invoke(initial_state)
+        answer = result.get("generation", "No answer generated.")
         latency = time.time() - start_time
 
         # Step 3: Grade Citations

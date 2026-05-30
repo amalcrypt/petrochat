@@ -27,7 +27,7 @@ PetroChat is a domain-specific Retrieval-Augmented Generation (RAG) system tailo
 * **Retrieval Reflection**: After searching, the agent actively reads the retrieved documents and grades their relevance. If local context is missing for a step, it autonomously triggers a Web Search fallback to fill the gap.
 * **Source Prioritization & Synthesis**: When combining answers from multiple tools, the agent explicitly prioritizes official internal Standards (API, OSHA, BLM, Handbooks) as the ground truth over web search results.
 * **Hybrid Document Search**: Integrates semantic vector search (ChromaDB + `all-MiniLM-L6-v2`) and keyword search (Rank-BM25) to achieve high recall and precision.
-* **Cross-Encoder Re-ranking**: Employs a Cross-Encoder model (`BAAI/bge-reranker-base`) to score and select the top 3 most relevant context chunks out of 30 initial candidates.
+* **Agentic Routing over Re-ranking**: Eliminates the need for slow, heavy Cross-Encoder reranking models by dynamically routing queries to targeted databases and leveraging native LLM reasoning to extract relevant context.
 * **Self-Correction & Hallucination Guardrails**: The agent acts as its own critic, evaluating draft answers to ensure they are strictly grounded in context and properly resolve the user's question. It loops and retries if it hallucinates.
 * **Conversational Memory**: Automatically reformulates follow-up queries using the last 3 turns of chat history, maintaining topic continuity in conversational mode.
 * **Page-Level Standard Citations**: Automatically maps document filenames to their respective international engineering standards, generating citations in standard formatting after every factual claim (e.g. `[API RP 54 (Well Drilling and Servicing Safety), Page 56]`).
@@ -43,7 +43,7 @@ PetroChat is a domain-specific Retrieval-Augmented Generation (RAG) system tailo
 
 ## 🏗️ Architecture Diagram
 
-The diagram below details the ingestion, retrieval, reranking, and generation pipeline of PetroChat:
+The diagram below details the ingestion, Agentic LangGraph workflow, and generation pipeline of PetroChat:
 
 ```mermaid
 flowchart TD
@@ -174,6 +174,12 @@ Execute the automated test suite to run 10 complex domain-specific queries again
 python run_tests.py
 ```
 
+### 6. Run Accuracy Evaluation
+Execute the Ground Truth Evaluation script, which uses an LLM-as-a-Judge to score the Agent's answers for semantic correctness, hallucination prevention, and proper citation usage. Results are output to `evaluation_report.md`:
+```bash
+python evaluate.py
+```
+
 ---
 
 ## 📂 Project Structure
@@ -193,6 +199,7 @@ petrochat/
 ├── agentic_graph.py         # LangGraph state machine (Router, Graders, Tools)
 ├── ingest.py                # Document parsing, chunking, and embedding
 ├── run_tests.py             # Automated test runner suite
+├── evaluate.py              # LLM-as-a-judge accuracy evaluation script
 ├── requirements.txt         # Package dependencies
 ├── .env                     # Environment configurations (Groq API Key)
 ├── qa_log.md                # Output log of the automated test runner
@@ -203,7 +210,7 @@ petrochat/
 
 ## 🐳 Docker Containerization
 
-You can package and run PetroChat using Docker. The Dockerfile pre-downloads and caches the local machine learning models (embeddings and reranker) during the image build process for faster runtime start times.
+You can package and run PetroChat using Docker. The Dockerfile pre-downloads and caches the local machine learning embeddings model during the image build process for faster runtime start times.
 
 ### 1. Build the Docker Image
 Build the Docker image from the root directory of the project:
@@ -235,7 +242,6 @@ Access the application in your browser at `http://localhost:7860`.
 
 This project is built for the Oil & Gas industry using open-source models:
 * **Embeddings**: SentenceTransformers `all-MiniLM-L6-v2`
-* **Reranker**: Cross-Encoder `BAAI/bge-reranker-base`
 * **Large Language Model**: LLaMA-3.3-70B via Groq API
 * **Vector Store**: ChromaDB
 * **UI Framework**: Streamlit

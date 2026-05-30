@@ -17,11 +17,11 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from sentence_transformers import CrossEncoder
 from groq import Groq
 
-# Reuse helper functions from petrochat
 from petrochat import (
     GROQ_MODEL, EMBEDDINGS_MODEL, RERANKER_MODEL, CHROMA_DIR, 
-    COLLECTION_NAME, BM25_PATH, retrieve_and_rerank, get_answer, reformulate_query
+    COLLECTION_NAME, BM25_PATH
 )
+from agentic_graph import build_graph
 
 # Output test log path
 TEST_LOG_PATH = "qa_log.md"
@@ -60,6 +60,9 @@ def main():
             
     print("[+] Loading Cross-Encoder reranker...")
     reranker = CrossEncoder(RERANKER_MODEL)
+    
+    print("[+] Compiling Agentic Graph...")
+    app = build_graph(db, bm25_retriever, reranker)
     
     # Define the 10 test queries
     # Queries 9 and 10 represent a multi-turn conversation to test conversational memory
@@ -108,23 +111,25 @@ def main():
         
         print(f"\n[+] Running Query {i}/10 ({q_type}): '{original_query}'")
         
-        # Determine query reformulation
-        standalone = original_query
-        reformulation_note = ""
-        
-        if q_type == "conversational_followup":
-            standalone = reformulate_query(client, original_query, chat_history)
-            reformulation_note = f"**Reformulated Search Query**: `{standalone}`\n\n"
-            print(f"    -> Reformulated query: '{standalone}'")
-        elif q_type == "conversational_start":
+        if q_type == "conversational_start":
             # Start of a new conversation branch
             chat_history = []
             
-        # Retrieve context
-        retrieved_results = retrieve_and_rerank(standalone, db, bm25_retriever, reranker, top_n=3)
+        initial_state = {
+            "original_query": original_query,
+            "chat_history": chat_history,
+        }
         
-        # Get LLM answer
-        answer = get_answer(client, original_query, retrieved_results, chat_history)
+        result = app.invoke(initial_state)
+        answer = result.get("generation", "No answer generated.")
+        standalone = result.get("standalone_query", original_query)
+        retrieved_docs = result.get("documents", [])
+        
+        retrieved_results = [(doc, 0.99) for doc in retrieved_docs]
+        
+        reformulation_note = ""
+        if q_type == "conversational_followup" and standalone != original_query:
+            reformulation_note = f"**Reformulated Search Query**: `{standalone}`\n\n"
         
         # Print answer to stdout
         print(f"    -> Answer generated. ({len(answer)} chars)")
