@@ -12,7 +12,7 @@ from langgraph.graph import END, StateGraph
 # Import needed functions from petrochat.py
 from petrochat import retrieve_and_rerank, perform_web_search, load_rag_resources
 
-GROQ_MODEL = "llama-3.3-70b-versatile"
+GROQ_MODEL = "llama-3.1-8b-instant"
 
 class GraphState(TypedDict):
     """
@@ -21,7 +21,19 @@ class GraphState(TypedDict):
     original_query: str
     standalone_query: str
     chat_history: List[Dict[str, str]]
+    
+    # Execution Tracking
+    plan: List[str]
+    current_step_index: int
+    completed_steps: List[str]
+    gathered_context: List[Document]
     documents: List[Document]
+    
+    # State flags
+    current_tool: str
+    forced_fallback: bool
+    
+    # Generation Tracking
     generation: str
     generation_feedback: str
     iterations: int
@@ -57,24 +69,24 @@ class PetroAgent:
             print(f"[!] Error in structured call: {e}")
             return {}
 
-    def route_query(self, state: GraphState) -> Literal["conversational", "vectorstore"]:
+    def route_query(self, state: GraphState) -> Literal["conversational", "plan"]:
         print("    -> [ROUTER] Analyzing query...")
         question = state.get("standalone_query") or state["original_query"]
 
-        system = """You are an expert at routing a user question to either a 'conversational' agent or a 'vectorstore'.
+        system = """You are an expert at routing a user question to either a 'conversational' agent or a 'plan' agent.
 Use 'conversational' strictly for simple greetings like "hi", "hello", "how are you?".
-For ANY technical question about oil and gas, procedures, standards, safety, or if you are unsure, use 'vectorstore'.
-You must respond with a JSON object containing a single key "datasource" with the value "conversational" or "vectorstore"."""
+For ANY technical question about oil and gas, procedures, standards, safety, or if you are unsure, use 'plan'.
+You must respond with a JSON object containing a single key "datasource" with the value "conversational" or "plan"."""
         
         res = self._structured_call(system, question)
-        route = res.get("datasource", "vectorstore")
+        route = res.get("datasource", "plan")
         
         if route == 'conversational':
             print("    -> [ROUTER] Routing to Conversational Node")
             return "conversational"
         else:
-            print("    -> [ROUTER] Routing to Retrieve Node")
-            return "vectorstore"
+            print("    -> [ROUTER] Routing to Planner Node")
+            return "plan"
 
     def reformulate(self, state: GraphState) -> GraphState:
         question = state["original_query"]
@@ -109,62 +121,7 @@ Standalone Question:"""
         
         print(f"    -> [REFORMULATE] Standalone query: {standalone}")
         return {"standalone_query": standalone}
-
-    def retrieve(self, state: GraphState) -> GraphState:
-        print("    -> [RETRIEVE] Fetching local documents...")
-        question = state.get("standalone_query") or state["original_query"]
         
-        # Local retrieval only first
-        docs = retrieve_and_rerank(question, self.db, self.bm25, self.reranker, top_n=3, use_web_search=False)
-        print(f"    -> [RETRIEVE] Retrieved {len(docs)} local chunks")
-        
-        # Strip out the scores for the graph state, just keep the documents
-        state_docs = [doc for doc, score in docs]
-        return {"documents": state_docs}
-
-    def grade_documents(self, state: GraphState) -> GraphState:
-        print("    -> [GRADER] Assessing document relevance...")
-        question = state.get("standalone_query") or state["original_query"]
-        documents = state.get("documents", [])
-        
-        if not documents:
-            return {"documents": []}
-            
-        system = """You are a grader assessing relevance of a retrieved document to a user question. 
-If the document contains keyword(s) or semantic meaning related to the question, grade it as relevant. 
-You must respond with a JSON object containing a single key "binary_score" with value "yes" or "no"."""
-        
-        valid_docs = []
-        for doc in documents:
-            prompt = f"Retrieved document: \n\n {doc.page_content} \n\n User question: {question}"
-            score = self._structured_call(system, prompt).get("binary_score", "no")
-            if score == "yes":
-                valid_docs.append(doc)
-                
-        print(f"    -> [GRADER] {len(valid_docs)}/{len(documents)} documents deemed relevant")
-        return {"documents": valid_docs}
-
-    def web_search(self, state: GraphState) -> GraphState:
-        print("    -> [WEB SEARCH] Triggering fallback search...")
-        question = state.get("standalone_query") or state["original_query"]
-        documents = state.get("documents", [])
-        
-        web_docs = perform_web_search(question)
-        if web_docs:
-            print(f"    -> [WEB SEARCH] Retrieved {len(web_docs)} web documents")
-            documents.extend(web_docs)
-        else:
-            print("    -> [WEB SEARCH] No web documents found")
-            
-        return {"documents": documents}
-
-    def assess_relevance(self, state: GraphState) -> Literal["generate", "web_search"]:
-        if not state.get("documents"):
-            print("    -> [DECISION] No relevant local docs, routing to Web Search")
-            return "web_search"
-        print("    -> [DECISION] Local docs are relevant, routing to Generation")
-        return "generate"
-
     def conversational_response(self, state: GraphState) -> GraphState:
         print("    -> [GENERATE] Providing conversational response...")
         question = state["original_query"]
@@ -176,18 +133,189 @@ You must respond with a JSON object containing a single key "binary_score" with 
         )
         return {"generation": completion.choices[0].message.content}
 
+    def plan_query(self, state: GraphState) -> GraphState:
+        print("    -> [PLANNER] Decomposing query...")
+        question = state.get("standalone_query") or state["original_query"]
+        
+        system = """You are a Planner Agent for an Oil & Gas expert system. 
+Your task is to take a complex user query and decompose it into a list of simpler, independent sub-queries. 
+If the user's query is simple, just return it as a single item in the list.
+You must respond with a JSON object containing a single key "sub_queries" whose value is a list of strings."""
+
+        res = self._structured_call(system, question)
+        plan = res.get("sub_queries", [question])
+        
+        # Limit to 3 queries to avoid infinite loops
+        if len(plan) > 3:
+            plan = plan[:3]
+            
+        print(f"    -> [PLANNER] Created plan with {len(plan)} steps:")
+        for idx, step in enumerate(plan):
+            print(f"       Step {idx+1}: {step}")
+            
+        return {
+            "plan": plan, 
+            "current_step_index": 0,
+            "completed_steps": [],
+            "gathered_context": [],
+            "iterations": 0
+        }
+
+    def check_plan_complete(self, state: GraphState) -> Literal["select_tool", "generate"]:
+        idx = state.get("current_step_index", 0)
+        plan = state.get("plan", [])
+        if idx < len(plan):
+            return "select_tool"
+        print("    -> [PLANNER] All steps complete, moving to generation.")
+        return "generate"
+
+    def select_tool(self, state: GraphState) -> GraphState:
+        idx = state["current_step_index"]
+        current_query = state["plan"][idx]
+        print(f"    -> [MULTI-TOOL] Selecting tool for sub-query: '{current_query}'")
+        
+        system = """You are a Tool Selector. For a given query, decide which tool is best:
+- "vector": For semantic meaning, concepts, operations, and general Oil & Gas questions.
+- "bm25": For strict keyword matching, specific standard numbers (e.g. "API RP 53", "OSHA 3843").
+- "web": For real-time, external, or non-technical knowledge.
+You must respond with a JSON object containing a single key "tool" with value "vector", "bm25", or "web"."""
+        
+        res = self._structured_call(system, current_query)
+        tool = res.get("tool", "vector")
+        
+        print(f"    -> [MULTI-TOOL] Selected '{tool}'")
+        return {"current_tool": tool}
+
+    def route_tool(self, state: GraphState) -> Literal["execute_vector", "execute_bm25", "execute_web"]:
+        tool = state.get("current_tool", "vector")
+        if tool == "web":
+            return "execute_web"
+        elif tool == "bm25":
+            return "execute_bm25"
+        else:
+            return "execute_vector"
+
+    def execute_vector(self, state: GraphState) -> GraphState:
+        print("    -> [EXECUTE] Fetching from VectorDB...")
+        idx = state["current_step_index"]
+        query = state["plan"][idx]
+        context = state.get("gathered_context", [])
+        
+        # Semantic search only
+        try:
+            chroma_results = self.db.similarity_search_with_score(query, k=5)
+            # Deduplicate and append
+            for doc, score in chroma_results:
+                if not any(d.page_content == doc.page_content for d in context):
+                    context.append(doc)
+        except Exception as e:
+            print(f"    -> [EXECUTE] VectorDB error: {e}")
+                
+        return {"gathered_context": context}
+
+    def execute_bm25(self, state: GraphState) -> GraphState:
+        print("    -> [EXECUTE] Fetching from BM25...")
+        idx = state["current_step_index"]
+        query = state["plan"][idx]
+        context = state.get("gathered_context", [])
+        
+        if self.bm25:
+            try:
+                bm25_docs = self.bm25.invoke(query)
+                for doc in bm25_docs:
+                    if not any(d.page_content == doc.page_content for d in context):
+                        context.append(doc)
+            except Exception as e:
+                print(f"    -> [EXECUTE] BM25 error: {e}")
+                
+        return {"gathered_context": context}
+
+    def execute_web(self, state: GraphState) -> GraphState:
+        print("    -> [EXECUTE] Fetching from Web...")
+        idx = state["current_step_index"]
+        query = state["plan"][idx]
+        context = state.get("gathered_context", [])
+        
+        web_docs = perform_web_search(query)
+        for doc in web_docs:
+            if not any(d.page_content == doc.page_content for d in context):
+                context.append(doc)
+                
+        return {"gathered_context": context}
+
+    def reflect_on_context(self, state: GraphState) -> GraphState:
+        print("    -> [REFLECTION] Reflecting on gathered context...")
+        idx = state["current_step_index"]
+        query = state["plan"][idx]
+        context = state.get("gathered_context", [])
+        
+        context_str = "\n".join([d.page_content[:500] for d in context])
+        
+        system = """You are a Grader. Read the provided context and determine if it fully resolves the user query.
+If yes, score "yes". If the context is empty or missing key information, score "no".
+Respond with a JSON object containing a single key "binary_score" with value "yes" or "no"."""
+        
+        prompt = f"Query: {query}\n\nContext: {context_str}"
+        score = self._structured_call(system, prompt).get("binary_score", "no")
+        
+        if score == "yes" or state.get("current_tool") == "web":
+            # Move to next step (If we already tried web, give up and move on to prevent loops)
+            if score == "yes":
+                print("    -> [REFLECTION] Context is sufficient. Moving to next step.")
+            else:
+                print("    -> [REFLECTION] Context insufficient, but web fallback exhausted. Moving to next step.")
+            completed = state.get("completed_steps", [])
+            completed.append(query)
+            return {
+                "completed_steps": completed,
+                "current_step_index": idx + 1,
+                "forced_fallback": False
+            }
+        else:
+            print("    -> [REFLECTION] Context insufficient. Forcing Web Search fallback.")
+            # We overwrite current_tool to web so the router pushes it there next iteration
+            return {"current_tool": "web", "forced_fallback": True}
+
+    def route_after_reflection(self, state: GraphState) -> Literal["select_tool", "generate", "execute_web"]:
+        if state.get("forced_fallback"):
+            return "execute_web"
+            
+        idx = state.get("current_step_index", 0)
+        plan = state.get("plan", [])
+        if idx < len(plan):
+            return "select_tool"
+            
+        print("    -> [PLANNER] All steps complete, moving to generation.")
+        return "generate"
+
     def generate(self, state: GraphState) -> GraphState:
         print("    -> [GENERATE] Crafting final answer...")
         question = state.get("standalone_query") or state["original_query"]
-        documents = state.get("documents", [])
+        documents = state.get("gathered_context", [])
         iterations = state.get("iterations", 0)
         feedback = state.get("generation_feedback", "")
         
+        # Deduplicate and sort documents (Source Prioritization)
+        # Prioritize local documents (API, OSHA, BLM) over web search
+        def score_doc(doc):
+            source = doc.metadata.get("source", "").lower()
+            if "api" in source or "osha" in source or "blm" in source or "handbook" in source:
+                return 2
+            elif "web search" in source:
+                return 0
+            return 1
+            
+        sorted_docs = sorted(documents, key=score_doc, reverse=True)
+        
         context_str = ""
-        for doc in documents:
+        for doc in sorted_docs:
             source = doc.metadata.get("source", "Unknown")
             page = doc.metadata.get("page", "Unknown")
             context_str += f"--- Document Source: {source} | Page: {page} ---\n{doc.page_content}\n\n"
+            
+        # Truncate to avoid Groq 6000 TPM limits on free tier
+        if len(context_str) > 12000:
+            context_str = context_str[:12000] + "\n\n...[CONTEXT TRUNCATED DUE TO API LIMITS]"
 
         system_prompt = """You are PetroChat, an expert Oil & Gas engineer assistant specialized in drilling, production, well control, safety operations, and petroleum industry procedures.
 
@@ -197,7 +325,8 @@ Rules for 100% Accuracy and Clarity:
 1. Use ONLY information explicitly present in the retrieved context to guarantee 100% accuracy.
 2. Never use your own prior knowledge. Do not guess or infer missing details.
 3. Structure your answers to be exceptionally clear.
-4. Cite the source using international engineering standards referencing format (author/organization, standard identifier, and page number) after every factual statement.
+4. SOURCE PRIORITIZATION: You must heavily prioritize official standards (e.g. API RP, OSHA, BLM, Handbooks) over Web Search results. If web search contradicts an official standard, ALWAYS trust the standard.
+5. Cite the source using international engineering standards referencing format (author/organization, standard identifier, and page number) after every factual statement.
    Map filenames to titles if applicable:
    - api_rp54_drilling_safety.pdf -> API RP 54 (Well Drilling and Servicing Safety)
    - osha_3843_tank_gauging.pdf -> OSHA 3843 (Safe Tank Gauging)
@@ -209,7 +338,7 @@ Rules for 100% Accuracy and Clarity:
    Example Citation: [API RP 54, Page 12]
    If Web Search, do not generate a citation block or disclaimer.
 
-5. ALWAYS think step by step before answering. You MUST enclose your entire thought process within <think> and </think> tags. Place this block at the very beginning of your response.
+6. ALWAYS think step by step before answering. You MUST enclose your entire thought process within <think> and </think> tags. Place this block at the very beginning of your response.
 """
 
         messages = [{"role": "system", "content": system_prompt}]
@@ -229,12 +358,13 @@ Rules for 100% Accuracy and Clarity:
             messages=messages,
             temperature=0.0
         )
-        return {"generation": completion.choices[0].message.content, "iterations": iterations + 1}
+        # Update the documents in state so that petrochat logger can log the sorted context
+        return {"generation": completion.choices[0].message.content, "iterations": iterations + 1, "documents": sorted_docs}
 
     def grade_generation(self, state: GraphState) -> Literal["useful", "not_supported", "not_useful"]:
         print("    -> [SELF-CORRECTION] Checking generation for hallucinations...")
         question = state.get("standalone_query") or state["original_query"]
-        documents = state.get("documents", [])
+        documents = state.get("gathered_context", [])
         generation = state["generation"]
         iterations = state.get("iterations", 0)
 
@@ -271,7 +401,7 @@ You must respond with a JSON object containing a single key "binary_score" with 
             print("    -> [DECISION] Generation is grounded and answers the question.")
             return "useful"
         else:
-            print("    -> [DECISION] Generation is grounded but DOES NOT answer the question. Triggering Web Search.")
+            print("    -> [DECISION] Generation is grounded but DOES NOT answer the question. Moving back to planner.")
             return "not_useful"
 
     def inject_feedback(self, state: GraphState) -> GraphState:
@@ -285,9 +415,12 @@ def build_graph(db, bm25, reranker):
     
     # Nodes
     workflow.add_node("reformulate", agent.reformulate)
-    workflow.add_node("retrieve", agent.retrieve)
-    workflow.add_node("grade_documents", agent.grade_documents)
-    workflow.add_node("web_search", agent.web_search)
+    workflow.add_node("plan_query", agent.plan_query)
+    workflow.add_node("select_tool", agent.select_tool)
+    workflow.add_node("execute_vector", agent.execute_vector)
+    workflow.add_node("execute_bm25", agent.execute_bm25)
+    workflow.add_node("execute_web", agent.execute_web)
+    workflow.add_node("reflect_on_context", agent.reflect_on_context)
     workflow.add_node("generate", agent.generate)
     workflow.add_node("conversational", agent.conversational_response)
     workflow.add_node("inject_feedback", agent.inject_feedback)
@@ -299,23 +432,36 @@ def build_graph(db, bm25, reranker):
         "reformulate",
         agent.route_query,
         {
-            "vectorstore": "retrieve",
+            "plan": "plan_query",
             "conversational": "conversational",
         }
     )
     
-    workflow.add_edge("retrieve", "grade_documents")
+    workflow.add_edge("plan_query", "select_tool")
     
     workflow.add_conditional_edges(
-        "grade_documents",
-        agent.assess_relevance,
+        "select_tool",
+        agent.route_tool,
         {
-            "generate": "generate",
-            "web_search": "web_search",
+            "execute_vector": "execute_vector",
+            "execute_bm25": "execute_bm25",
+            "execute_web": "execute_web",
         }
     )
     
-    workflow.add_edge("web_search", "generate")
+    workflow.add_edge("execute_vector", "reflect_on_context")
+    workflow.add_edge("execute_bm25", "reflect_on_context")
+    workflow.add_edge("execute_web", "reflect_on_context")
+    
+    workflow.add_conditional_edges(
+        "reflect_on_context",
+        agent.route_after_reflection,
+        {
+            "execute_web": "execute_web",
+            "select_tool": "select_tool",
+            "generate": "generate"
+        }
+    )
     
     workflow.add_conditional_edges(
         "generate",
@@ -323,7 +469,7 @@ def build_graph(db, bm25, reranker):
         {
             "useful": END,
             "not_supported": "inject_feedback",
-            "not_useful": "web_search"
+            "not_useful": "plan_query" # Loop back to planner if entirely not useful
         }
     )
     

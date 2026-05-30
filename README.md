@@ -20,9 +20,12 @@ PetroChat is a domain-specific Retrieval-Augmented Generation (RAG) system tailo
 
 ## 🚀 Key Features
 
-* **Agentic Graph Workflow**: Powered by LangGraph, PetroChat uses an active state machine to reason about queries rather than a static pipeline.
+* **Plan-and-Execute Agent Workflow**: Powered by LangGraph, PetroChat uses an active state machine to reason about queries rather than a static pipeline.
 * **Intelligent Query Routing**: The agent decides if a query requires technical document retrieval or is a simple conversational greeting, saving compute and improving response time.
-* **Document Grader & Fallback**: The agent actively reads retrieved documents and grades their relevance. If local context is missing, it autonomously triggers a Web Search via DuckDuckGo/Tavily.
+* **Planner Agent & Query Decomposition**: For complex or multi-part questions, the agent breaks the prompt down into a series of smaller, independent sub-queries to execute iteratively.
+* **Multi-Tool Selection**: The agent dynamically selects the best search tool for each specific sub-query (Semantic Vector Search, BM25 Keyword Search, or Web Search).
+* **Retrieval Reflection**: After searching, the agent actively reads the retrieved documents and grades their relevance. If local context is missing for a step, it autonomously triggers a Web Search fallback to fill the gap.
+* **Source Prioritization & Synthesis**: When combining answers from multiple tools, the agent explicitly prioritizes official internal Standards (API, OSHA, BLM, Handbooks) as the ground truth over web search results.
 * **Hybrid Document Search**: Integrates semantic vector search (ChromaDB + `all-MiniLM-L6-v2`) and keyword search (Rank-BM25) to achieve high recall and precision.
 * **Cross-Encoder Re-ranking**: Employs a Cross-Encoder model (`BAAI/bge-reranker-base`) to score and select the top 3 most relevant context chunks out of 30 initial candidates.
 * **Self-Correction & Hallucination Guardrails**: The agent acts as its own critic, evaluating draft answers to ensure they are strictly grounded in context and properly resolve the user's question. It loops and retries if it hallucinates.
@@ -54,19 +57,21 @@ flowchart TD
     subgraph AgenticGraph["2. Agentic RAG Workflow (LangGraph)"]
         F[User Query] --> G{Router Node}
         G -- Conversational --> H[Conversational Response]
-        G -- Technical --> I[Retrieve Documents]
-        I --> J{Document Grader Node}
-        J -- Relevant --> K[Generate Draft]
-        J -- Not Relevant --> L[Web Search Node]
-        L --> K
-        K --> M{Self-Correction Node}
-        M -- Hallucination/No Answer --> N[Inject Feedback]
-        N --> K
-        M -- Valid --> O[Final Answer]
+        G -- Technical --> I[Planner Agent: Query Decomposition]
+        I --> J{Any uncompleted sub-queries?}
+        J -- Yes --> K[Multi-Tool Selection]
+        K --> L[Execute Tool: Vector / BM25 / Web]
+        L --> M[Retrieval Reflection Grader]
+        M -- Context Missing --> K
+        M -- Context Sufficient --> J
+        J -- No (All Done) --> N[Source Prioritization & Synthesis]
+        N --> O{Hallucination Grader}
+        O -- Failed --> N
+        O -- Passed --> P[Final Answer]
     end
     
-    H --> P[Streamlit UI]
-    O --> P
+    H --> Q[Streamlit UI]
+    P --> Q
 ```
 
 ---
