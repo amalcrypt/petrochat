@@ -24,6 +24,11 @@ import traceback
 import streamlit as st
 from dotenv import load_dotenv
 load_dotenv()
+try:
+    if "HF_TOKEN" in st.secrets:
+        os.environ["HF_TOKEN"] = st.secrets["HF_TOKEN"]
+except Exception:
+    pass
 from groq import Groq
 from ui_components import doc_list_html
 from petrochat import (
@@ -465,17 +470,35 @@ with st.spinner("Loading AI Models & Knowledge Base..."):
 
 if init_error:
     import glob
+    import chromadb
+    from petrochat import CHROMA_DIR, COLLECTION_NAME
+
+    def needs_ingestion(collection_name: str) -> bool:
+        try:
+            client = chromadb.PersistentClient(path=CHROMA_DIR)
+            col = client.get_collection(collection_name)
+            return col.count() == 0
+        except Exception:
+            return True
+
     existing_pdfs = glob.glob(os.path.join("./data", "*.pdf"))
-    if existing_pdfs:
+    if existing_pdfs and "db_ready" not in st.session_state:
         with st.spinner("Auto-ingesting existing documents from data folder... Please wait."):
-            from ingest import run_ingestion
-            success, msg = run_ingestion(force=True)
-            if success:
+            if needs_ingestion(COLLECTION_NAME):
+                from ingest import run_ingestion
+                success, msg = run_ingestion(force=True)
+                if success:
+                    st.session_state["db_ready"] = True
+                    st.cache_resource.clear()
+                    st.cache_data.clear()
+                    st.rerun()
+                else:
+                    st.error(f"Failed to auto-ingest documents: {msg}")
+            else:
+                st.session_state["db_ready"] = True
                 st.cache_resource.clear()
                 st.cache_data.clear()
                 st.rerun()
-            else:
-                st.error(f"Failed to auto-ingest documents: {msg}")
 
 @st.cache_data
 def get_database_stats(_db):

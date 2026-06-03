@@ -108,7 +108,8 @@ def run_ingestion(force=False, data_dir="./data", persist_dir="./chroma_db", col
 
     print("[+] Generating embeddings and saving to ChromaDB...")
     # Use the free HuggingFace model for embeddings (runs locally)
-    embeddings = HuggingFaceEmbeddings(model_name="BAAI/bge-large-en-v1.5")
+    from petrochat import load_embeddings
+    embeddings = load_embeddings()
     
     # If forcing ingestion, wipe the old collection first
     if force and os.path.exists(persist_dir):

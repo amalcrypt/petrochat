@@ -40,6 +40,13 @@ COLLECTION_NAME = "petrochat_docs"
 BM25_PATH = "bm25_retriever.pkl"
 LOG_FILE = "petrochat_session.log"
 
+import streamlit as st
+
+@st.cache_resource(show_spinner=False)
+def load_embeddings():
+    from langchain_huggingface import HuggingFaceEmbeddings
+    return HuggingFaceEmbeddings(model_name=EMBEDDINGS_MODEL)
+
 
 # ── Resource Loading ─────────────────────────────────────────────────────────
 
@@ -57,7 +64,7 @@ def load_rag_resources(raise_on_missing=False):
         sys.exit(1)
 
     print("[+] Loading local embeddings model (BAAI/bge-large-en-v1.5)...")
-    embeddings = HuggingFaceEmbeddings(model_name=EMBEDDINGS_MODEL)
+    embeddings = load_embeddings()
 
     print("[+] Connecting to local Chroma database...")
     db = Chroma(
