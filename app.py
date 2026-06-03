@@ -862,7 +862,7 @@ else:
                     think_text = think_match.group(1).strip()
                     final_answer = message["content"].replace(think_match.group(0), "").strip()
                     with st.expander("🧠 Thinking Process"):
-                        st.markdown(think_text)
+                        st.markdown(think_text, unsafe_allow_html=True)
                     st.markdown(final_answer)
                 else:
                     st.markdown(message["content"])
@@ -885,13 +885,16 @@ if active_prompt:
                 text_stripped = text.strip()
                 if text_stripped and ("->" in text_stripped or "Step" in text_stripped or "Error" in text_stripped):
                     self.logs.append(text_stripped)
-                    log_container.markdown("```text\n" + "\n".join(self.logs) + "\n```")
+                    import html
+                    log_html = "".join([f"<div>{html.escape(line)}</div>" for line in reversed(self.logs)])
+                    log_container.markdown(f'<div style="max-height: 250px; overflow-y: auto; display: flex; flex-direction: column-reverse; background-color: #ffffff; color: #000000 !important; padding: 12px; border-radius: 8px; font-family: monospace; font-size: 0.85rem; border: 1px solid #e5e5e5; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">{log_html}</div>', unsafe_allow_html=True)
                     
             def flush(self):
                 self.original_stdout.flush()
 
         old_stdout = sys.stdout
-        sys.stdout = LogCapturer(old_stdout)
+        capturer = LogCapturer(old_stdout)
+        sys.stdout = capturer
 
         history_subset = [{"role": m["role"], "content": m["content"]} for m in st.session_state.messages[:-1]]
         
@@ -900,6 +903,7 @@ if active_prompt:
             "chat_history": history_subset,
         }
         
+
         try:
             result = app_graph.invoke(initial_state)
             answer = result.get("generation", "No answer generated.")
@@ -908,12 +912,41 @@ if active_prompt:
             
             docs_with_scores = [(doc, 0.99) for doc in retrieved_docs]
             status.update(label="Agent finished thinking!", state="complete", expanded=False)
-        except Exception as e:
+        except BaseException as e:
             sys.stdout = old_stdout
-            st.error(f"Agent execution error: {e}")
-            st.stop()
+            if type(e).__name__ in ["StopException", "ScriptControlException"]:
+                if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
+                    st.session_state.messages.pop()
+                    if sid in st.session_state.sessions:
+                        st.session_state.sessions[sid]["messages"] = st.session_state.messages
+                        save_session(sid, st.session_state.sessions[sid]["title"], st.session_state.messages)
+                st.warning("Agent execution was stopped by the user.")
+                st.stop()
+            elif isinstance(e, Exception):
+                if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
+                    st.session_state.messages.pop()
+                st.error(f"Agent execution error: {e}")
+                st.stop()
+            else:
+                raise e
         finally:
+            captured_agent_logs = capturer.logs if 'capturer' in locals() else []
             sys.stdout = old_stdout
+
+        # Format and prepend captured agent steps to the answer's <think> block
+        if captured_agent_logs:
+            import html
+            logs_html = "".join([f'<div style="margin: 3px 0;">{html.escape(line)}</div>' for line in captured_agent_logs])
+            agent_steps_html = f'<div style="background-color: #ffffff; color: #000000 !important; border: 1px solid #d1d5db; padding: 12px; border-radius: 8px; font-family: Courier New, Courier, monospace; font-size: 0.85rem; line-height: 1.4; font-weight: 500; margin: 10px 0;">{logs_html}</div>'
+            agent_steps_str = f"🤖 **Agent Execution Steps:**\n\n{agent_steps_html}\n\n"
+            think_match = re.search(r"<think>(.*?)</think>", answer, re.DOTALL)
+            if think_match:
+                old_think = think_match.group(0)
+                new_think = f"<think>\n{agent_steps_str}🧠 **LLM Reasoning:**\n{think_match.group(1).strip()}\n</think>"
+                answer = answer.replace(old_think, new_think)
+            else:
+                answer = f"<think>\n{agent_steps_str}</think>\n{answer}"
+
             
         sources_info = [
             {
@@ -935,7 +968,7 @@ if active_prompt:
             think_text = think_match.group(1).strip()
             final_answer = answer.replace(think_match.group(0), "").strip()
             with st.expander("🧠 Thinking Process"):
-                st.markdown(think_text)
+                st.markdown(think_text, unsafe_allow_html=True)
 
         answer_placeholder = st.empty()
         displayed = ""

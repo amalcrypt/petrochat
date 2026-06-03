@@ -108,7 +108,7 @@ def run_ingestion(force=False, data_dir="./data", persist_dir="./chroma_db", col
 
     print("[+] Generating embeddings and saving to ChromaDB...")
     # Use the free HuggingFace model for embeddings (runs locally)
-    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+    embeddings = HuggingFaceEmbeddings(model_name="BAAI/bge-large-en-v1.5")
     
     # If forcing ingestion, wipe the old collection first
     if force and os.path.exists(persist_dir):
@@ -120,14 +120,21 @@ def run_ingestion(force=False, data_dir="./data", persist_dir="./chroma_db", col
         except Exception as e:
             print(f"[!] Warning deleting collection: {e}")
 
-    # Create Chroma vector store and persist it to disk
-    Chroma.from_documents(
-        documents=chunks,
-        embedding=embeddings,
+    # Create Chroma vector store
+    vector_store = Chroma(
         collection_name=collection_name,
+        embedding_function=embeddings,
         persist_directory=persist_dir,
         collection_metadata={"hnsw:space": "cosine"}  # Set cosine distance metric for scoring logic
     )
+
+    batch_size = 50
+    total_chunks = len(chunks)
+    print(f"[+] Ingesting {total_chunks} chunks in batches of {batch_size}...")
+    for i in range(0, total_chunks, batch_size):
+        batch = chunks[i:i+batch_size]
+        vector_store.add_documents(batch)
+        print(f"    -> Ingested chunks {i+1} to {min(i+batch_size, total_chunks)} of {total_chunks}...")
 
     print("[+] Building and saving BM25 keyword index...")
     bm25_retriever = BM25Retriever.from_documents(chunks)
