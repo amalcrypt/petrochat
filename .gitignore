@@ -10,9 +10,6 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Databases / Indexes
-chroma_db/
-bm25_retriever.pkl
 
 
 
