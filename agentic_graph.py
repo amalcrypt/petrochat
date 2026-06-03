@@ -860,7 +860,11 @@ Return a JSON object:
             "not found in the available sources",
             "not found in the provided documents",
             "additional verification may be required",
-            "information was not found"
+            "information was not found",
+            "do not contain sufficient information",
+            "insufficient grounded information",
+            "do not cover",
+            "failed verification due to potential hallucinations"
         ]
         if any(d in generation.lower() for d in disclaimers):
             print("-> [ANSWER-CHECKER] Response is a valid out-of-context rejection. Usefulness passed.")
