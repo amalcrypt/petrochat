@@ -785,7 +785,7 @@ Return a JSON object:
 {
   "verdict": "PASS" | "FAIL",
   "issues": ["issue1", "issue2"],  // empty if PASS
-  "salvageable_claims": ["claim1"] // claims that ARE grounded, if any
+  "salvageable_claims": ["claim1"] // Grounded claims. IMPORTANT: Extract the factual claim ONLY. Do NOT include citations or document names (e.g. 'is mentioned in api.pdf'). Just provide the clear, factual answer.
 }"""
 
         prompt = f"Retrieved Context:\n{context_str}\n\nGenerated Response:\n{generation}"
