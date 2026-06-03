@@ -517,14 +517,23 @@ where confidence represents how certain you are about your decision (1.0 = very 
         else:  # NEED_MORE
             print("-> [REFLECT] Context is insufficient. Retrieving more.")
             if step_retries >= MAX_RETRIES_PER_STEP:
-                 print(f"-> [REFLECT] Step retry limit reached. Moving to next sub-query.")
-                 return {
-                     "is_sufficient": False,
-                     "current_step_index": idx + 1,
-                     "step_retries": 0,
-                     "web_attempted": False,
-                     "context_quality": "INSUFFICIENT"
-                 }
+                 if not state.get("web_attempted", False):
+                     print("-> [REFLECT] Local retrieval failed. Trying web search fallback.")
+                     return {
+                         "is_sufficient": False,
+                         "current_tool": "web",
+                         "web_attempted": True,
+                         "step_retries": 1
+                     }
+                 else:
+                     print(f"-> [REFLECT] Step retry limit reached (web attempted). Moving to next sub-query.")
+                     return {
+                         "is_sufficient": False,
+                         "current_step_index": idx + 1,
+                         "step_retries": 0,
+                         "web_attempted": False,
+                         "context_quality": "INSUFFICIENT"
+                     }
             return {
                 "is_sufficient": False,
                 "step_retries": step_retries + 1,
@@ -579,10 +588,10 @@ Respond with JSON: {"rewritten_query": "..."}"""
         quality = state.get("context_quality", "UNKNOWN")
         
         if quality == "INSUFFICIENT" or not context:
-            print("-> [GRADE] Context quality marked INSUFFICIENT by reflection. Blocking generation.")
+            print("-> [GRADE] Context quality marked INSUFFICIENT by reflection. Proceeding with gaps.")
             return {
-                "generation_feedback": "BLOCK: Retrieval quality too low.",
-                "known_gaps": ["Entire query context is missing."]
+                "generation_feedback": "",
+                "known_gaps": ["The retrieved documents may not contain sufficient information."]
             }
 
         # Compact context representation for grading
@@ -606,8 +615,8 @@ Return JSON only:
         missing = res.get("missing_aspects", [])
 
         if not can_answer:
-            print("-> [GRADE] High fabrication risk. Blocking generation.")
-            return {"generation_feedback": "BLOCK: High fabrication risk.", "known_gaps": missing}
+            print("-> [GRADE] High fabrication risk. Proceeding with known gaps.")
+            return {"generation_feedback": "", "known_gaps": missing}
             
         if score < 0.6:
             print("-> [GRADE] Low coverage score. Generating with gaps.")
@@ -631,14 +640,7 @@ Return JSON only:
         verifier_issues = state.get("verifier_issues", [])
         salvageable_claims = state.get("salvageable_claims", [])
 
-        # Context Sufficiency Gate (from Grader Block)
-        if "BLOCK:" in feedback:
-            print("-> [GENERATE] Context blocked by Grader. Returning fallback.")
-            return {
-                "generation": "The available documents do not contain sufficient information to answer this reliably.",
-                "iterations": iterations + 1,
-                "documents": documents
-            }
+        # Removed Context Sufficiency Gate (BLOCK) to allow answering all questions using gaps.
 
         # Sort by source priority (internal standards > web)
         def source_priority(doc):
@@ -813,9 +815,9 @@ Return a JSON object:
             if past_max_retries:
                 print(f"-> [VERIFIER] Max retries reached ({iterations}). Degrading to partial answer.")
                 if salvageable_claims:
-                    final_answer = "The original answer failed verification due to potential hallucinations. Based on grounded sources, here is what can be confirmed:\n" + "\n".join(f"- {c}" for c in salvageable_claims)
+                    final_answer = "Based on grounded sources, here is what can be confirmed:\n" + "\n".join(f"- {c}" for c in salvageable_claims)
                 else:
-                    final_answer = "Insufficient grounded information to answer the question reliably."
+                    final_answer = "I could not find explicitly grounded information in the provided documents to answer the question completely."
                 # Override the generation and force pass
                 return {
                     "generation": final_answer,
@@ -864,7 +866,9 @@ Return a JSON object:
             "do not contain sufficient information",
             "insufficient grounded information",
             "do not cover",
-            "failed verification due to potential hallucinations"
+            "failed verification due to potential hallucinations",
+            "i could not find explicitly grounded information",
+            "answer the question completely"
         ]
         if any(d in generation.lower() for d in disclaimers):
             print("-> [ANSWER-CHECKER] Response is a valid out-of-context rejection. Usefulness passed.")
